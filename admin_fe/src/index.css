@@ -1,0 +1,59 @@
+:root {
+  font-family: "Nunito", sans-serif;
+  line-height: 1.5;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.react-datepicker__month-container {
+  background-color: #ffffff;
+  border-radius: 8px; 
+  font-family: "Nunito", sans-serif;
+}
+
+.react-datepicker__month {
+  background-color: #ffffff;
+  display: grid;
+  font-family: "Nunito", sans-serif;
+}
+
+.react-datepicker__month-text {
+  font-size: 1rem; 
+  color: #333; 
+  padding: 8px;
+  transition: background-color 0.3s ease, color 0.3s ease; 
+}
+
+.react-datepicker__month-text--selected {
+  color: white; 
+  border-radius: 2px; 
+  padding: 8px;
+}
+
+.react-datepicker__month-text--keyboard-selected {
+  color: white; 
+  border-radius: 2px; 
+  padding: 8px;
+}
+
+.react-datepicker__month-text:hover {
+  padding: 8px;
+  background-color: #f0f0f0; 
+  cursor: pointer; 
+  transition: background-color 0.3s ease, color 0.3s ease; 
+}
+
+.react-datepicker__month-text.react-datepicker__month-4 {
+  font-weight: normal;
+  color: #000; 
+  border-radius: 4px;
+}
