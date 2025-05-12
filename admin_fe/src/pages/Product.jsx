@@ -187,12 +187,12 @@ function Product() {
           <div className="bg-white p-6 rounded-xs shadow-md w-full max-w-lg">
             <h2 className="text-xl font-bold mb-4">{editData ? 'Edit Produk' : 'Tambah Produk'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <input name="product_name" value={formData.product_name} onChange={handleChange} className="w-full border px-3 py-2 rounded-xs" placeholder="Nama Produk" required />
-              <input name="type" value={formData.type} onChange={handleChange} className="w-full border px-3 py-2 rounded-xsrounded-xs" placeholder="Tipe" />
-              <input name="thick" value={formData.thick} onChange={handleChange} className="w-full border px-3 py-2 rounded-xs" placeholder="Tebal" />
-              <input name="avg_weight_per_stick" value={formData.avg_weight_per_stick} onChange={handleChange} className="w-full border px-3 py-2 rounded-xs" placeholder="Rata-rata Berat/Batang" />
-              <input name="unit_price" value={formData.unit_price} onChange={handleChange} className="w-full border px-3 py-2 rounded-xsrounded-xs" placeholder="Harga Satuan" required />
-              <input name="stock" value={formData.stock} onChange={handleChange} className="w-full border px-3 py-2 rounded-xs" placeholder="Stok" required />
+              <input name="product_name" value={formData.product_name} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-xs focus:outline-none focus:ring-1 focus:ring-black" placeholder="Nama Produk" required />
+              <input name="type" value={formData.type} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-xs focus:outline-none focus:ring-1 focus:ring-black" placeholder="Tipe" />
+              <input name="thick" value={formData.thick} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-xs focus:outline-none focus:ring-1 focus:ring-black" placeholder="Tebal" />
+              <input name="avg_weight_per_stick" value={formData.avg_weight_per_stick} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-xs focus:outline-none focus:ring-1 focus:ring-black" placeholder="Rata-rata Berat/Batang" />
+              <input name="unit_price" value={formData.unit_price} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-xs focus:outline-none focus:ring-1 focus:ring-black" placeholder="Harga Satuan" required />
+              <input name="stock" value={formData.stock} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-xs focus:outline-none focus:ring-1 focus:ring-black" placeholder="Stok" required />
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={closeModal} className="px-4 py-2 bg-gray-300 rounded-xs">Batal</button>
                 <button type="submit" className="px-4 py-2 bg-blue-800 text-white rounded-xs">Simpan</button>
