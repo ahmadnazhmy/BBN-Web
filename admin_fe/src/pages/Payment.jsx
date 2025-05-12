@@ -140,7 +140,7 @@ function Payment() {
               className={`text-sm px-4 py-2 rounded-xs transition-opacity duration-200 mr-4
                 ${filterMonthYear ? 'bg-blue-800 hover:bg-blue-900 text-white' : 'opacity-0 pointer-events-none'}`}
             >
-              Semua Bulan
+              Tampil Semua
             </button>
           )}
         </div>

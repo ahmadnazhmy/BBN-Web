@@ -158,7 +158,7 @@ export default function Order() {
                 ${filterMonthYear ? 'bg-blue-800 hover:bg-blue-900 text-white' : 'opacity-0 pointer-events-none'}
               `}
             >
-              Semua Bulan
+              Tampil Semua
             </button>
             )}
 
@@ -166,7 +166,7 @@ export default function Order() {
               onClick={handleExportPDF}
               className="bg-blue-800 hover:bg-blue-900 text-white text-sm px-4 py-2 rounded-xs mr-4"
             >
-              Export PDF
+              Ekspor PDF
             </button>
           </div>
           <select

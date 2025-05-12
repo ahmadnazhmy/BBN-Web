@@ -35,12 +35,15 @@ export default function Nav() {
     };
   }, [isNotifOpen]);
 
-  const isActiveLink = (path) => location.pathname === path ? 'text-black' : 'text-gray-500';
+  const isActiveLink = (path) =>
+    location.pathname === path ? 'text-black' : 'text-gray-500';
+
+  const navItemClass = (path) =>
+    `text-center text-base transition duration-200 hover:text-black ${isActiveLink(path)}`;
 
   return (
     <div className="py-4 px-6 md:px-24 border-b border-gray-300 z-10">
       <div className="flex justify-between items-center">
-
         <Link to="/" className="flex items-center">
           <img src={Logo} alt="Logo" className="w-10 mr-2" />
           <h1 className="hidden lg:block text-base font-bold mr-4">Berlian Baja Nusantara</h1>
@@ -49,31 +52,36 @@ export default function Nav() {
         <div className="flex items-center justify-end">
           {isLoggedIn ? (
             <div className="flex gap-8 text-lg">
-              <Link to="/cart" className={`text-center text-base ${isActiveLink('/cart')}`}>
+              <Link to="/cart" className={navItemClass('/cart')}>
                 <FontAwesomeIcon icon={faCartShopping} />
               </Link>
-              <Link to="/history" className={`text-center text-base ${isActiveLink('/history')}`}>
+              <Link to="/history" className={navItemClass('/history')}>
                 <FontAwesomeIcon icon={faHistory} />
               </Link>
 
-              <div ref={dropdownRef} className="relative text-center text-base text-gray-500 hover:text-black">
+              <div
+                ref={dropdownRef}
+                className="relative text-center text-base text-gray-500 hover:text-black transition duration-200"
+              >
                 <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="relative">
                   <FontAwesomeIcon icon={faBell} />
                 </button>
-
                 <Notification isOpen={isNotifOpen} setIsOpen={setIsNotifOpen} />
               </div>
 
-              <Link to="/editprofile" className={`text-center text-base ${isActiveLink('/editprofile')}`}>
+              <Link to="/editprofile" className={navItemClass('/editprofile')}>
                 <FontAwesomeIcon icon={faUser} />
               </Link>
-              <button onClick={handleLogout} className="text-base text-gray-500 hover:text-black">
+              <button
+                onClick={handleLogout}
+                className="text-base text-gray-500 hover:text-black transition duration-200"
+              >
                 <FontAwesomeIcon icon={faRightFromBracket} />
               </button>
             </div>
           ) : (
             <div className="flex gap-4 items-center">
-              <Link to="/register" className="text-base text-gray-500 hover:text-black">
+              <Link to="/register" className="text-base text-gray-500 hover:text-black transition duration-200">
                 Daftar
               </Link>
               <Link to="/login">
