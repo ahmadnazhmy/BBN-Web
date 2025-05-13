@@ -21,7 +21,7 @@ function Product() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/product');
+        const res = await fetch('http://bbn-web.up.railway.app/api/product');
         if (!res.ok) throw new Error('Failed to fetch products');
         const data = await res.json();
         setProducts(data);
@@ -66,8 +66,8 @@ function Product() {
     e.preventDefault();
     const method = editData ? 'PUT' : 'POST';
     const url = editData
-      ? `http://localhost:5000/api/product/${editData.product_id}`
-      : 'http://localhost:5000/api/product';
+      ? `http://bbn-web.up.railway.app/api/product/${editData.product_id}`
+      : 'http://bbn-web.up.railway.app/api/product';
 
     try {
       const res = await fetch(url, {
@@ -100,7 +100,7 @@ function Product() {
   const handleDelete = async (productId) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
       try {
-        const res = await fetch(`http://localhost:5000/api/product/${productId}`, {
+        const res = await fetch(`http://bbn-web.up.railway.app/api/product/${productId}`, {
           method: 'DELETE',
         });
         if (res.ok) {

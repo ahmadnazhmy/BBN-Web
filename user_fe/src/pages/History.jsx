@@ -16,7 +16,7 @@ function History() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/user/history', {
+        const res = await fetch('http://bbn-web.up.railway.app/api/user/history', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -180,7 +180,7 @@ function History() {
             {selectedItems.proof && (
               <div className="mt-6">
                 <a
-                  href={`http://localhost:5000${selectedItems.proof}`}
+                  href={`http://bbn-web.up.railway.app${selectedItems.proof}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-900 text-sm text-center"

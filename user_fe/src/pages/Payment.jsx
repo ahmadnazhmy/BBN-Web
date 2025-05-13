@@ -12,7 +12,7 @@ function Payment() {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/order/${orderId}`, {
+        const res = await fetch(`http://bbn-web.up.railway.app/api/order/${orderId}`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -56,7 +56,7 @@ function Payment() {
     formData.append('amount', amount)
 
     try {
-      const res = await fetch('http://localhost:5000/api/upload-proof', {
+      const res = await fetch('http://bbn-web.up.railway.app/api/upload-proof', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -78,7 +78,7 @@ function Payment() {
     if (!window.confirm('Apakah kamu yakin ingin membatalkan pembayaran ini?')) return
   
     try {
-      const res = await fetch(`http://localhost:5000/api/order/${orderId}/cancel-payment`, {
+      const res = await fetch(`http://bbn-web.up.railway.app/api/order/${orderId}/cancel-payment`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`

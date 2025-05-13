@@ -12,7 +12,7 @@ function RetryPayment() {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/order/${orderId}`, {
+        const res = await fetch(`http://bbn-web.up.railway.app/api/order/${orderId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -43,9 +43,9 @@ function RetryPayment() {
     formData.append('amount', amount);
 
     try {
-      const res = await fetch('http://localhost:5000/api/upload-proof', {
+      const res = await fetch('http://bbn-web.up.railway.app/api/upload-proof', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }, // Jangan set Content-Type manual
+        headers: { Authorization: `Bearer ${token}` }, 
         body: formData
       });
       const result = await res.json();
@@ -61,7 +61,7 @@ function RetryPayment() {
   const handleCancelPayment = async () => {
     if (!window.confirm('Apakah kamu yakin ingin membatalkan pembayaran ini?')) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/order/${orderId}/cancel-payment`, {
+      const res = await fetch(`http://bbn-web.up.railway.app/api/order/${orderId}/cancel-payment`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });

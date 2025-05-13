@@ -24,7 +24,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/login', {
+      const res = await fetch('http://bbn-web.up.railway.app/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

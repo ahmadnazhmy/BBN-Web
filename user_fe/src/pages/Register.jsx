@@ -17,7 +17,7 @@ function Register() {
     const data = { shop_name, email, phone, address, password };
   
     try {
-      const response = await fetch('http://localhost:5000/api/register', {
+      const response = await fetch('http://bbn-web.up.railway.app/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
