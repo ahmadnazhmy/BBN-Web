@@ -11,9 +11,19 @@ const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const historyRoutes = require('./routes/historyRoutes');
-const notificationRoutes = require('./routes/notificationRoutes')
+const notificationRoutes = require('./routes/notificationRoutes');
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://bbn-web-i9wq.vercel.app',  
+    'https://bbn-web-ahmad-nazhmy-zahrians-projects.vercel.app'  
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.options('*', cors()); 
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,7 +36,7 @@ app.use('/api', cartRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', paymentRoutes);
 app.use('/api', historyRoutes);
-app.use('/api', notificationRoutes)
+app.use('/api', notificationRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running');
