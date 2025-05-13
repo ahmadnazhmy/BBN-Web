@@ -20,12 +20,9 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    console.log("Origin yang masuk:", origin);
     if (!origin || allowedOrigins.includes(origin)) {
-      console.log("Origin diizinkan");
       callback(null, true);
     } else {
-      console.log("Origin DITOLAK:", origin);
       callback(new Error('Not allowed by CORS'));
     }
   },

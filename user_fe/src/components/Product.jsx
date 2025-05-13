@@ -2,35 +2,13 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faMinus, faPlus } from '@fortawesome/free-solid-svg-icons'
-import { useNavigate } from 'react-router-dom'
 import Catalog from './Catalog'
 
 const Product = () => {
   const [productName, setProductName] = useState('')
   const [products, setProducts] = useState([])
   const [quantities, setQuantities] = useState({})
-  const navigate = useNavigate()
-
   const isLoggedIn = !!localStorage.getItem('token')
-
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    const loginTime = localStorage.getItem('login_time')
-
-    if (token && loginTime) {
-      const now = new Date()
-      const loginDate = new Date(loginTime)
-      const diffInMs = now - loginDate
-      const diffInHours = diffInMs / (1000 * 60 * 60)
-
-      if (diffInHours >= 24) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('login_time')
-        localStorage.removeItem('user_id')
-        navigate('/login')
-      }
-    }
-  }, [navigate])
 
   async function fetchProducts() {
     try {
