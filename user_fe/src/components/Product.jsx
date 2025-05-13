@@ -11,19 +11,24 @@ const Product = () => {
   const isLoggedIn = !!localStorage.getItem('token')
 
   async function fetchProducts() {
-    try {
+  try {
+    let url = 'https://bbn-web.up.railway.app/api/product'
+    if (productName) {
       const params = new URLSearchParams()
-      if (productName) params.append('product_name', productName)
-      const res = await fetch(`https://bbn-web.up.railway.app/api/product?${params.toString()}`)
-      const data = await res.json()
-      setProducts(data)
-      const initQty = {}
-      data.forEach(p => { initQty[p.product_id] = 1 })
-      setQuantities(initQty)
-    } catch (err) {
-      console.error('Gagal fetch produk:', err)
+      params.append('product_name', productName)
+      url += `?${params.toString()}`
     }
+
+    const res = await fetch(url)
+    const data = await res.json()
+    setProducts(data)
+    const initQty = {}
+    data.forEach(p => { initQty[p.product_id] = 1 })
+    setQuantities(initQty)
+  } catch (err) {
+    console.error('Gagal fetch produk:', err)
   }
+}
 
   useEffect(() => {
     fetchProducts()
