@@ -14,7 +14,7 @@ function Promotion() {
         </div>
         <div className="w-full md:w-1/2 flex flex-col justify-center px-4 md:px-12 pt-4 md:pt-0">
           <p className="text-xl md:text-2xl font-bold mb-4">Keunggulan Prima Inti Truss:</p>
-          <ul className="space-y-2 text-sm md:text-base">
+          <ul className="space-y-2">
             <li>✔️ Kekuatan struktural tinggi</li>
             <li>✔️ Tahan karat & cuaca ekstrem</li>
             <li>✔️ Presisi & efisiensi pemasangan</li>
@@ -35,7 +35,7 @@ function Promotion() {
           <p className="text-xl md:text-2xl font-bold mb-4">
             Baja ringan bermutu tinggi & kualitas terjamin
           </p>
-          <p className="text-sm md:text-base">
+          <p>
             Solusi penutup atap yang kuat, tahan lama, dan presisi. Kualitas tepercaya untuk investasi jangka panjang Anda.
           </p>
         </div>

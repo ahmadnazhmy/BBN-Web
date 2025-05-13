@@ -13,7 +13,7 @@ function Contact() {
           <h2 className="text-2xl md:text-3xl font-bold">
             Ingin info lebih lanjut?
           </h2>
-          <p className="text-sm md:text-base">
+          <p>
             Hubungi admin kami melalui WhatsApp atau DM Instagram.
           </p>
         </div>

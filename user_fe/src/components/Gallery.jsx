@@ -35,7 +35,7 @@ function Gallery() {
               alt={image.alt} 
               className="w-full h-auto rounded-xs transform transition-transform duration-300 hover:scale-105"  
             />
-            <p className="p-4 text-center text-sm md:text-base text-gray-700">
+            <p className="p-4 text-center text-gray-700">
               {image.description}
             </p>
           </div>

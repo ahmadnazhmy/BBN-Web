@@ -54,7 +54,7 @@ export default function Banner() {
           <h1 className="text-2xl md:text-4xl font-bold mb-2">
             {banners[current].title}
           </h1>
-          <p className="text-sm md:text-base">{banners[current].description}</p>
+          <p>{banners[current].description}</p>
         </div>
       </div>
 

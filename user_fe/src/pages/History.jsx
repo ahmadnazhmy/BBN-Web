@@ -93,7 +93,7 @@ function History() {
   return (
     <div>
       <Nav/>
-      <div className="p-4 md:px-24 md:py-12 text-sm md:text-base">
+      <div className="p-4 md:px-24 md:py-12">
       <h2 className="text-xl md:text-2xl font-bold mb-6 text-center md:text-left">Riwayat Pesanan & Pembayaran</h2>
 
       {history.length === 0 ? (
@@ -157,7 +157,7 @@ function History() {
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30 p-4">
           <div className="bg-white rounded-lg max-w-md md:max-w-3xl w-full max-h-[90vh] overflow-y-auto relative p-6">
             <h3 className="text-lg md:text-xl font-semibold mb-4">Detail Item Pesanan</h3>
-            <ul className="list-disc list-inside space-y-2 text-sm md:text-base max-h-[60vh] overflow-y-auto">
+            <ul className="list-disc list-inside space-y-2 max-h-[60vh] overflow-y-auto">
               {selectedItems.items.length > 0 ? (
                 selectedItems.items.map((item) => (
                   <li className="flex items-center" key={item.order_item_id}>

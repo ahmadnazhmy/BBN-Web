@@ -130,7 +130,7 @@ function Catalog() {
               />
             </div>
             <div className="p-2 text-center">
-              <p className="text-sm md:text-base">{product.name}</p>
+              <p>{product.name}</p>
             </div>
           </div>
         ))}
@@ -156,7 +156,7 @@ function Catalog() {
 
             <div className="w-full md:w-1/2 md:pl-6 flex flex-col md:p-8">
               <h2 className="text-xl md:text-2xl font-semibold mb-2 md:mb-4">{selectedProduct.name}</h2>
-              <div className="text-sm md:text-base text-gray-600 whitespace-pre-line">
+              <div className="text-gray-600 whitespace-pre-line">
                 {selectedProduct.description}
               </div>
             </div>

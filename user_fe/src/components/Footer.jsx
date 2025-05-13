@@ -9,19 +9,19 @@ function Footer() {
       <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 mb-4 md:mb-8">
         <div className="flex flex-col items-start">
           <img src={logo} alt="Company Logo" className="w-24 mb-3" />
-          <p className="text-sm md:text-base">"Baja Ringan Prima Inti Truss – Kualitas You Can Trust.
+          <p>"Baja Ringan Prima Inti Truss – Kualitas You Can Trust.
           "</p>
         </div>
         
         <div>
           <h4 className="text-xl font-bold mb-2">Alamat</h4>
-          <p className='text-sm md:text-base'>Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820</p>
+          <p>Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820</p>
         </div>
         <div>
           <h4 className="text-xl font-bold mb-2">Jam operasional</h4>
-          <p className='text-sm md:text-base'>Senin - Jumat: 08.00 - 17.00</p>
-          <p className='text-sm md:text-base'>Sabtu: 08.00 - 14.00</p>
-          <p className='text-sm md:text-base'>Minggu: Libur</p>
+          <p>Senin - Jumat: 08.00 - 17.00</p>
+          <p>Sabtu: 08.00 - 14.00</p>
+          <p>Minggu: Libur</p>
         </div>
         <div className="flex flex-col">
           <h4 className="text-xl font-bold mb-2">Media sosial</h4>

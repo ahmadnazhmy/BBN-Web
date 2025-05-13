@@ -37,7 +37,7 @@ function Register() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center md:min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 md:rounded-xs md:shadow-lg md:bg-white">
         <h2 className="text-2xl font-bold text-center mb-8">Daftar Akun</h2>
         <form onSubmit={handleSubmit}>

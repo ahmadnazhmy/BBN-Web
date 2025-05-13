@@ -114,14 +114,14 @@ const Notification = ({ isOpen, setIsOpen }) => {
       "
     >
       {notifications.length === 0 ? (
-        <div className="p-4 text-gray-500 text-sm text-center">Tidak ada notifikasi</div>
+        <div className="p-4 text-gray-500 text-center">Tidak ada notifikasi</div>
       ) : (
         <>
           <div className="flex justify-between items-center p-4">
-            <span className="font-semibold text-sm md:text-base">Notifikasi</span>
+            <span className="font-bold text-base">Notifikasi</span>
             <button
               onClick={deleteAllNotifications}
-              className="text-red-600 text-xs md:text-sm hover:underline"
+              className="text-red-600 text-sm hover:underline"
             >
               Hapus Semua
             </button>
@@ -129,7 +129,7 @@ const Notification = ({ isOpen, setIsOpen }) => {
           <ul className="divide-y">
             {notifications.map((notif) => (
               <li key={notif.id} className="p-4 hover:bg-gray-100">
-                <div className={`${notif.is_read ? 'text-gray-500' : 'font-semibold'} text-sm md:text-base`}>
+                <div className={`${notif.is_read ? 'text-gray-500' : 'font-semibold'} text-base`}>
                   {notif.message}
                 </div>
                 <div className="text-xs text-gray-400 mt-1">
@@ -139,7 +139,7 @@ const Notification = ({ isOpen, setIsOpen }) => {
                   {!notif.is_read && (
                     <button
                       onClick={() => markAsRead(notif.id)}
-                      className="text-blue-600 text-xs md:text-sm hover:underline"
+                      className="text-blue-600 text-sm hover:underline"
                     >
                       Tandai dibaca
                     </button>
@@ -147,7 +147,7 @@ const Notification = ({ isOpen, setIsOpen }) => {
                   {notif.message?.includes('sedang diantar') && !notif.is_confirmed && (
                     <button
                       onClick={() => confirmDelivery(notif)}
-                      className="bg-blue-800 hover:bg-blue-900 text-white text-xs md:text-sm rounded-xs p-2"
+                      className="bg-blue-800 hover:bg-blue-900 text-white text-sm rounded-xs p-2"
                     >
                       Konfirmasi Barang Sampai
                     </button>

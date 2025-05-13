@@ -132,7 +132,7 @@ Total bayar: Rp${getTotalPrice().toLocaleString()}
   return (
     <div>
       <Nav/>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 p-4 md:px-24 md:py-12 text-sm md:text-base">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 p-4 md:px-24 md:py-12">
       <div className="md:col-span-2 px-0 md:px-6">
         <h2 className="text-center md:text-left text-xl md:text-2xl font-bold mb-4">Keranjang Saya</h2>
         {cartItems.length === 0 ? (
