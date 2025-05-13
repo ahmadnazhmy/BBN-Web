@@ -15,25 +15,13 @@ const notificationRoutes = require('./routes/notificationRoutes');
 
 app.use(cors({
   origin: [
-    'https://bbn-web-i9wq.vercel.app', 
-    'https://bbn-web-ahmad-nazhmy-zahrians-projects.vercel.app' 
+    'https://bbn-web-i9wq.vercel.app',
+    'https://bbn-web-ahmad-nazhmy-zahrians-projects.vercel.app'
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], 
-  allowedHeaders: ['Content-Type', 'Authorization'], 
-  credentials: true  
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
-
-app.options('*', cors()); 
-
-app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', '*'); 
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    return res.status(200).end();  
-  }
-  next();
-});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
