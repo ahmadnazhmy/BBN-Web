@@ -15,11 +15,12 @@ const notificationRoutes = require('./routes/notificationRoutes');
 
 app.use(cors({
   origin: [
-    'https://bbn-web-i9wq.vercel.app',  
-    'https://bbn-web-ahmad-nazhmy-zahrians-projects.vercel.app'  
+    'https://bbn-web-i9wq.vercel.app', 
+    'https://bbn-web-ahmad-nazhmy-zahrians-projects.vercel.app' 
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], 
+  allowedHeaders: ['Content-Type', 'Authorization'], 
+  credentials: true  
 }));
 
 app.options('*', cors()); 
