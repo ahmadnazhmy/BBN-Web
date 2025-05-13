@@ -6,10 +6,22 @@ import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      alert('Email tidak valid!');
+      return;
+    }
+    if (password.length < 6) {
+      alert('Password harus memiliki setidaknya 6 karakter');
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const res = await fetch('http://localhost:5000/api/login', {
@@ -32,6 +44,9 @@ function Login() {
       }
     } catch (error) {
       console.error('Error saat login:', error);
+      alert('Terjadi kesalahan saat login. Silakan coba lagi!');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,6 +63,7 @@ function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              aria-label="Email"
               className="bg-white w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xs focus:outline-none focus:ring-1 focus:ring-black"
             />
           </div>
@@ -59,14 +75,16 @@ function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              aria-label="Password"
               className="bg-white w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xs focus:outline-none focus:ring-1 focus:ring-black"
             />
           </div>
           <button
             type="submit"
             className="w-full py-2 bg-blue-800 text-white rounded-xs hover:bg-blue-900 transition duration-200"
+            disabled={loading}
           >
-            Login
+            {loading ? 'Memproses...' : 'Login'}
           </button>
         </form>
       </div>

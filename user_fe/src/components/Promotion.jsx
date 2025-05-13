@@ -4,18 +4,14 @@ import BG5 from "../assets/images/_RRR5400.JPG";
 
 function Promotion() {
   return (
-    <div className="bg-white px-4 md:px-24 py-8 md:py-16 space-y-8 md:space-y-0">
-      {/* Bagian atas: gambar kiri, teks kanan */}
+    <div className="bg-white p-4 md:px-24 md:py-16 space-y-8 md:space-y-0">
       <div className="flex flex-col md:flex-row h-auto md:h-80">
-        {/* Kiri: gambar dengan overlay */}
         <div
           className="relative w-full md:w-1/2 h-64 md:h-full bg-cover bg-center"
           style={{ backgroundImage: `url(${BG5})` }}
         >
           <div className="absolute inset-0 bg-black opacity-20"></div>
         </div>
-
-        {/* Kanan: teks */}
         <div className="w-full md:w-1/2 flex flex-col justify-center px-4 md:px-12 pt-4 md:pt-0">
           <p className="text-xl md:text-2xl font-bold mb-4">Keunggulan Prima Inti Truss:</p>
           <ul className="space-y-2 text-sm md:text-base">

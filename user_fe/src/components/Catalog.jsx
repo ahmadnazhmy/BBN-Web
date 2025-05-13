@@ -82,7 +82,7 @@ function Catalog() {
       image: TalangJuray,
       description: `Talang Jurai Prima Inti Truss untuk pengaliran air hujan yang efisien.
   
-  • Type: Polos
+  • Tipe: Polos
   • Panjang: 3 Meter
   • Material: Baja ringan anti karat
   • Dirancang untuk atap model jurai
@@ -137,26 +137,26 @@ function Catalog() {
       </div>
 
       {selectedProduct && (
-        <div className="fixed inset-0  backdrop-blur-sm bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded p-6 max-w-4xl w-full relative flex flex-col md:flex-row">
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xs p-4 max-w-4xl w-full max-h-screen overflow-y-auto relative flex flex-col md:flex-row">
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
               onClick={closeModal}
             >
-              <FontAwesomeIcon icon={faXmark} size="xl" className='p-4'/>
+              <FontAwesomeIcon icon={faXmark} className='m-4 text-lg md:text-2xl' />
             </button>
 
-            <div className="w-full md:w-1/2 mb-4 md:mb-0 flex items-center">
+            <div className="w-full md:w-1/2 mb-4 md:mb-0 flex items-center justify-center">
               <img
                 src={selectedProduct.image}
                 alt={selectedProduct.name}
-                className="w-full aspect-square object-cover rounded-xs "
+                className="w-full aspect-square object-cover rounded"
               />
             </div>
 
-            <div className="w-full md:w-1/2 md:pl-6 flex flex-col p-8">
-              <h2 className="text-2xl font-semibold mb-4">{selectedProduct.name}</h2>
-              <div className="text-gray-600 whitespace-pre-line">
+            <div className="w-full md:w-1/2 md:pl-6 flex flex-col md:p-8">
+              <h2 className="text-xl md:text-2xl font-semibold mb-2 md:mb-4">{selectedProduct.name}</h2>
+              <div className="text-sm md:text-base text-gray-600 whitespace-pre-line">
                 {selectedProduct.description}
               </div>
             </div>
@@ -164,7 +164,6 @@ function Catalog() {
         </div>
       )}
     </div>
-
   );
 }
 

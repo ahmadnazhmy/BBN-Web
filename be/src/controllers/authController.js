@@ -14,10 +14,10 @@ const registerAdmin = async (req, res) => {
 
     await db.query(query, values);
 
-    res.status(201).json({ message: 'Admin registered successfully' });
+    res.status(201).json({ message: 'Admin berhasil terdaftar' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Admin registration failed' });
+    res.status(500).json({ message: 'Admin gagal terdaftar' });
   }
 };
 
@@ -30,10 +30,10 @@ const register = async (req, res) => {
     const values = [shop_name, email, phone, address, hashedPassword];
 
     await db.query(query, values);
-    res.status(201).json({ message: 'User registered successfully' });
+    res.status(201).json({ message: 'Pengguna berhasil terdaftar' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Registration failed' });
+    res.status(500).json({ message: 'Pengguna gagal terdaftar' });
   }
 };
 
@@ -45,12 +45,12 @@ const login = async (req, res) => {
     const user = rows[0];
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Password tidak tepat' });
     }
 
     const token = jwt.sign(

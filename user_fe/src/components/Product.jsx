@@ -2,13 +2,35 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faMinus, faPlus } from '@fortawesome/free-solid-svg-icons'
+import { useNavigate } from 'react-router-dom'
 import Catalog from './Catalog'
 
 const Product = () => {
   const [productName, setProductName] = useState('')
   const [products, setProducts] = useState([])
   const [quantities, setQuantities] = useState({})
+  const navigate = useNavigate()
+
   const isLoggedIn = !!localStorage.getItem('token')
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const loginTime = localStorage.getItem('login_time')
+
+    if (token && loginTime) {
+      const now = new Date()
+      const loginDate = new Date(loginTime)
+      const diffInMs = now - loginDate
+      const diffInHours = diffInMs / (1000 * 60 * 60)
+
+      if (diffInHours >= 24) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('login_time')
+        localStorage.removeItem('user_id')
+        navigate('/login')
+      }
+    }
+  }, [navigate])
 
   async function fetchProducts() {
     try {
@@ -55,7 +77,7 @@ const Product = () => {
   }
 
   return (
-    <div className="px-4 md:px-24 py-16">
+    <div className="p-4 md:px-24 md:py-16">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 className="text-xl md:text-2xl font-bold">Cari Produk Kami</h1>
         <div className="relative w-full md:w-48">

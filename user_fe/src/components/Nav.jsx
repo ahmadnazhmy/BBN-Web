@@ -6,18 +6,32 @@ import { faHistory, faBell, faUser, faRightFromBracket, faCartShopping } from '@
 import Notification from '../pages/Notification';
 
 export default function Nav() {
-  const isLoggedIn = localStorage.getItem('token') !== null;
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const dropdownRef = useRef(null);
-  const location = useLocation(); 
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
-  };
-
+  const isLoggedIn = localStorage.getItem('token') !== null;
   const userId = JSON.parse(localStorage.getItem('user'))?.user_id;
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const loginTime = localStorage.getItem('login_time');
+
+    if (token && loginTime) {
+      const now = new Date();
+      const loginDate = new Date(loginTime);
+      const diffInMs = now - loginDate;
+      const diffInHours = diffInMs / (1000 * 60 * 60);
+
+      if (diffInHours >= 24) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('login_time');
+        localStorage.removeItem('user');
+        navigate('/login');
+      }
+    }
+  }, [navigate]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -34,6 +48,12 @@ export default function Nav() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isNotifOpen]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
   const isActiveLink = (path) =>
     location.pathname === path ? 'text-black' : 'text-gray-500';

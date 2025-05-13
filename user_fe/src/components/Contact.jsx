@@ -3,7 +3,7 @@ import BG9 from "../assets/images/IMG_9760.JPG"
 
 function Contact() {
   return (
-    <div className='px-4 md:px-24 py-16 bg-white'>
+    <div className='p-0 md:px-24 md:py-16 bg-white'>
         <div
         className="relative bg-cover bg-center h-64 md:h-80 flex items-center justify-start rounded-xs overflow-hidden"
         style={{ backgroundImage: `url(${BG9})` }}
