@@ -32,7 +32,7 @@ const Cart = () => {
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://bbn-web.up.railway.app/api/profile', {
+        const response = await fetch('https://bbn-web.up.railway.app/api/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -86,7 +86,7 @@ const Cart = () => {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch('http://bbn-web.up.railway.app/api/checkout', {
+      const response = await fetch('https://bbn-web.up.railway.app/api/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

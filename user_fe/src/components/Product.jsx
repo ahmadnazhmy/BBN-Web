@@ -36,7 +36,7 @@ const Product = () => {
     try {
       const params = new URLSearchParams()
       if (productName) params.append('product_name', productName)
-      const res = await fetch(`http://bbn-web.up.railway.app/api/product?${params.toString()}`)
+      const res = await fetch(`https://bbn-web.up.railway.app/api/product?${params.toString()}`)
       const data = await res.json()
       setProducts(data)
       const initQty = {}
@@ -60,7 +60,7 @@ const Product = () => {
       return alert(`Stok tidak cukup! (${p.stock} tersisa)`)
     }
     try {
-      await axios.post('http://bbn-web.up.railway.app/api/cart', {
+      await axios.post('https://bbn-web.up.railway.app/api/cart', {
         productId: p.product_id,
         quantity: qty,
       })

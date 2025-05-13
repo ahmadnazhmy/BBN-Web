@@ -22,7 +22,7 @@ function Register() {
     setError('');
 
     try {
-      const response = await axios.post('http://bbn-web.up.railway.app/api/admin/register', {
+      const response = await axios.post('https://bbn-web.up.railway.app/api/admin/register', {
         username,
         password, 
       });

@@ -59,7 +59,7 @@ function Payment() {
         query.append('year', year);
       }
   
-      const res = await fetch(`http://bbn-web.up.railway.app/api/admin/payment?${query.toString()}`, {
+      const res = await fetch(`https://bbn-web.up.railway.app/api/admin/payment?${query.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
   
@@ -77,7 +77,7 @@ function Payment() {
   const updateStatus = async (paymentId, newStatus) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://bbn-web.up.railway.app/api/admin/payment/${paymentId}/status`, {
+      const res = await fetch(`https://bbn-web.up.railway.app/api/admin/payment/${paymentId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ function Payment() {
   const updateMessage = async (paymentId, newMessage) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://bbn-web.up.railway.app/api/admin/payment/${paymentId}/message`, {
+      const res = await fetch(`https://bbn-web.up.railway.app/api/admin/payment/${paymentId}/message`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -238,7 +238,7 @@ function Payment() {
                   <td className="px-4 py-3 border-b border-gray-300">
                     {p.proof_of_payment ? (
                       <a
-                        href={`http://bbn-web.up.railway.app${p.proof_of_payment}`}
+                        href={`https://bbn-web.up.railway.app${p.proof_of_payment}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-white"

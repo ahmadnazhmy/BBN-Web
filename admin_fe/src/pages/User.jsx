@@ -18,7 +18,7 @@ function User() {
           return;
         }
 
-        const res = await fetch('http://bbn-web.up.railway.app/api/user', {
+        const res = await fetch('https://bbn-web.up.railway.app/api/user', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

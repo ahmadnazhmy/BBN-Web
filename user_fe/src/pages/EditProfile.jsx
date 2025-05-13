@@ -15,7 +15,7 @@ function EditProfile() {
     const fetchProfile = async () => {
       const token = localStorage.getItem('token');
   
-      const res = await fetch('http://bbn-web.up.railway.app/api/profile', {
+      const res = await fetch('https://bbn-web.up.railway.app/api/profile', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -42,7 +42,7 @@ function EditProfile() {
     const updatedData = { shop_name, email, phone, address };
 
     try {
-      const res = await fetch('http://bbn-web.up.railway.app/api/profile', {
+      const res = await fetch('https://bbn-web.up.railway.app/api/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
