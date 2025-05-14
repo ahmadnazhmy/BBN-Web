@@ -8,7 +8,7 @@ const url = new URL(dbUrl);
 const pool = mysql.createPool({
   host: url.hostname,             
   user: url.username,               
-  password: url.password || '',    
+  password: url.password,    
   database: url.pathname.substring(1),
   port: url.port || 3306,           
 });
