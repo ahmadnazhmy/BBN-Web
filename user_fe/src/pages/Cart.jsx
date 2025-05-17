@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faMinus, faPlus, faTrash, faChevronDown } from '@fortawesome/free-solid-svg-icons'
+import { useLocation, useNavigate } from 'react-router-dom'; 
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMinus, faPlus, faTrash, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import Nav from '../components/Nav';
 
 const Cart = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const userId = localStorage.getItem('user_id');
   const cartKey = `cart_${userId}`;
 
@@ -15,9 +17,14 @@ const Cart = () => {
   const [deliveryMethod, setDeliveryMethod] = useState('delivery');
   const [isCheckoutComplete, setIsCheckoutComplete] = useState(false);
 
-  const location = useLocation();
-
   useEffect(() => {
+    const token = localStorage.getItem('token'); 
+
+    if (!token) {
+      navigate('/login'); 
+      return;
+    }
+
     const urlParams = new URLSearchParams(location.search);
     const paymentSuccess = urlParams.get('payment_success');
     if (paymentSuccess === 'true') {
@@ -31,8 +38,7 @@ const Cart = () => {
 
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('https://bbn-web.up.railway.app/api/profile', {
+        const response = await fetch('http://localhost:5000/api/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -43,7 +49,8 @@ const Cart = () => {
     };
 
     fetchUser();
-  }, [location.search, cartKey]);
+  }, [location.search, cartKey, navigate]); 
+
 
   const updateCart = (items) => {
     setCartItems(items);
@@ -86,7 +93,7 @@ const Cart = () => {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch('https://bbn-web.up.railway.app/api/checkout', {
+      const response = await fetch('http://localhost:5000/api/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

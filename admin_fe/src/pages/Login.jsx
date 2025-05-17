@@ -23,7 +23,7 @@ function Login() {
     setError('');
 
     try {
-      const res = await fetch('https://bbn-web.up.railway.app/api/admin/login', {
+      const res = await fetch('http://localhost:5000/api/admin/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,7 +35,7 @@ function Login() {
 
       if (res.ok) {
         localStorage.setItem('adminToken', result.token);
-        navigate('/user');
+        navigate('/dashboard');
       } else {
         setError(result.message || 'Login failed');
       }

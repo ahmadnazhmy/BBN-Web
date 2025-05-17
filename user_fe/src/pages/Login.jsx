@@ -2,12 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
+import CryptoJS from 'crypto-js';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const secretKey = 'your_super_secret_key_32char'; 
+
+  const encryptData = (data) => {
+    return CryptoJS.AES.encrypt(JSON.stringify(data), secretKey).toString();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,12 +31,14 @@ function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch('https://bbn-web.up.railway.app/api/login', {
+      const encrypted = encryptData({ email, password });
+
+      const res = await fetch('http://localhost:5000/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ encrypted }),
       });
 
       const result = await res.json();

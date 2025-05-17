@@ -12,30 +12,27 @@ const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const historyRoutes = require('./routes/historyRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
-
-const allowedOrigins = [
-  'https://bbn-web-i9wq.vercel.app',
-  'https://bbn-web-ahmad-nazhmy-zahrians-projects.vercel.app'
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+const allowedOrigins = ['http://localhost:5174', 'http://localhost:5173'];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 app.use('/api', productRouter);
 app.use('/api', authRouter);
@@ -45,6 +42,7 @@ app.use('/api', orderRoutes);
 app.use('/api', paymentRoutes);
 app.use('/api', historyRoutes);
 app.use('/api', notificationRoutes);
+app.use('/api', dashboardRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running');

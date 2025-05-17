@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+  faChartLine,
   faUsers,
   faBox,
   faClipboardList,
@@ -15,6 +16,7 @@ function Side() {
   const navigate = useNavigate();
 
   const menuItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: faChartLine },
     { path: '/user', label: 'Pelanggan', icon: faUsers },
     { path: '/product', label: 'Produk', icon: faBox },
     { path: '/order', label: 'Pesanan', icon: faClipboardList },
@@ -27,7 +29,7 @@ function Side() {
   };
 
   return (
-    <div className="w-80 h-screen bg-blue-900 text-white flex flex-col p-6 shadow-lg">
+    <div className="w-80 h-screen fixed top-0 left-0 bg-blue-900 text-white flex flex-col p-6 shadow-lg z-10">
       <div className="flex items-center justify-center mb-8">
         <img src={Logo} alt="Logo" className="w-20" />
       </div>
@@ -42,9 +44,9 @@ function Side() {
                 : 'hover:bg-blue-950'
             }`}
           >
-          <div className='w-8 h-8 flex items-center'>
-          <FontAwesomeIcon icon={item.icon} />
-          </div>
+            <div className="w-8 h-8 flex justify-center items-center mr-2">
+              <FontAwesomeIcon icon={item.icon} />
+            </div>
             <span>{item.label}</span>
           </Link>
         ))}
@@ -53,8 +55,8 @@ function Side() {
         onClick={handleLogout}
         className="mt-auto flex items-center px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition-colors"
       >
-        <div className='w-8 h-8 flex items-center'>
-        <FontAwesomeIcon icon={faSignOutAlt} className="text-lg" />
+        <div className="w-8 h-8 flex justify-center items-center">
+          <FontAwesomeIcon icon={faSignOutAlt} className="text-lg" />
         </div>
         <span>Logout</span>
       </button>

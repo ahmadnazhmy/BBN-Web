@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock, faStore, faPhone, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from 'react-router-dom'; // ✅ Tambahkan ini
+import { useNavigate } from 'react-router-dom';
+import CryptoJS from 'crypto-js'; 
 
 function Register() {
   const [shop_name, setShopName] = useState('');
@@ -9,30 +10,38 @@ function Register() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+
+  const secretKey = 'your_super_secret_key_32char'; 
+
+  const encryptData = (data) => {
+    return CryptoJS.AES.encrypt(JSON.stringify(data), secretKey).toString();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     const data = { shop_name, email, phone, address, password };
-  
+    const encrypted = encryptData(data);
+
     try {
-      const response = await fetch('https://bbn-web.up.railway.app/api/register', {
+      const response = await fetch('http://localhost:5000/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ encrypted }),
       });
-  
+
       const result = await response.json();
       alert(result.message);
-  
+
       if (response.ok) {
-        navigate('/'); 
+        navigate('/');
       }
     } catch (error) {
       console.error('Error saat mengirim data:', error);
+      alert('Terjadi kesalahan saat mendaftar. Silakan coba lagi!');
     }
   };
 

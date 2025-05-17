@@ -14,9 +14,14 @@ function History() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!token) {
+      navigate('/login'); 
+      return;
+    }
+    
     const fetchHistory = async () => {
       try {
-        const res = await fetch('https://bbn-web.up.railway.app/api/user/history', {
+        const res = await fetch('http://localhost:5000/api/user/history', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -114,7 +119,13 @@ function History() {
                 <div className="mb-2 md:mb-0 md:flex md:gap-6 md:items-center">
                   <div>
                     <span className="font-semibold">Tanggal:</span>{' '}
-                    {entry.order_date ? new Date(entry.order_date).toLocaleDateString() : '-'}
+                    {entry.order_date
+                      ? new Date(entry.order_date).toLocaleDateString('id-ID', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : '-'}
                   </div>
                   <div>
                     <span className="font-semibold">Status Pesanan:</span>{' '}
@@ -180,7 +191,7 @@ function History() {
             {selectedItems.proof && (
               <div className="mt-6">
                 <a
-                  href={`https://bbn-web.up.railway.app${selectedItems.proof}`}
+                  href={`http://localhost:5000${selectedItems.proof}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-900 text-sm text-center"

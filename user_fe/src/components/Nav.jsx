@@ -44,10 +44,18 @@ export default function Nav() {
   return (
     <div className="py-4 px-6 md:px-24 border-b border-gray-300 z-10">
       <div className="flex justify-between items-center">
-        <Link to="/" className="flex items-center">
-          <img src={Logo} alt="Logo" className="w-10 mr-2" />
-          <h1 className="hidden lg:block text-base font-bold mr-4">Berlian Baja Nusantara</h1>
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link to="/" className="flex items-center">
+            <img src={Logo} alt="Logo" className="w-10 mr-2" />
+            <h1 className="hidden lg:block text-base font-bold">Berlian Baja Nusantara</h1>
+          </Link>
+          <Link
+            to="/company"
+            className="hidden md:block text-base text-gray-500 hover:text-black transition duration-200"
+          >
+            Tentang Kami
+          </Link>
+        </div>
 
         <div className="flex items-center justify-end">
           {isLoggedIn ? (

@@ -30,7 +30,7 @@ export default function Order() {
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem('adminToken');
-        const res = await fetch('https://bbn-web.up.railway.app/api/admin/orders', {
+        const res = await fetch('http://localhost:5000/api/admin/orders', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Gagal mengambil data order');
@@ -107,7 +107,7 @@ export default function Order() {
   const updateStatus = async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`https://bbn-web.up.railway.app/api/admin/orders/${orderId}/status`, {
+      const res = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -301,7 +301,7 @@ export default function Order() {
                       {item.quantity}
                     </span>
                     <span className="truncate max-w-[70%]">
-                      {item.product_name} {item.type} Tebal {item.thickness}mm {item.average_weight}kg
+                      {item.product_name} {item.type} Tebal {item.thick} mm {item.avg_weight_per_stick} kg
                     </span>
                     <span className="font-bold ml-auto whitespace-nowrap">
                       Rp {item.subtotal.toLocaleString()}

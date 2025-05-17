@@ -18,10 +18,15 @@ function Product() {
   });
   const [message, setMessage] = useState(null); 
 
+  // State untuk riwayat stok
+  const [stockHistory, setStockHistory] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showStockModal, setShowStockModal] = useState(false);
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch('https://bbn-web.up.railway.app/api/product');
+        const res = await fetch('http://localhost:5000/api/product');
         if (!res.ok) throw new Error('Failed to fetch products');
         const data = await res.json();
         setProducts(data);
@@ -66,8 +71,8 @@ function Product() {
     e.preventDefault();
     const method = editData ? 'PUT' : 'POST';
     const url = editData
-      ? `https://bbn-web.up.railway.app/api/product/${editData.product_id}`
-      : 'https://bbn-web.up.railway.app/api/product';
+      ? `http://localhost:5000/api/product/${editData.product_id}`
+      : 'http://localhost:5000/api/product';
 
     try {
       const res = await fetch(url, {
@@ -100,7 +105,7 @@ function Product() {
   const handleDelete = async (productId) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
       try {
-        const res = await fetch(`https://bbn-web.up.railway.app/api/product/${productId}`, {
+        const res = await fetch(`http://localhost:5000/api/product/${productId}`, {
           method: 'DELETE',
         });
         if (res.ok) {
@@ -115,6 +120,26 @@ function Product() {
         alert('Terjadi kesalahan saat menghapus');
       }
     }
+  };
+
+  const openStockHistory = async (product) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/stock/product/${product.product_id}`);
+      if (!res.ok) throw new Error('Gagal mengambil riwayat stok');
+      const data = await res.json();
+      setStockHistory(data);
+      setSelectedProduct(product);
+      setShowStockModal(true);
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+
+  const closeStockModal = () => {
+    setShowStockModal(false);
+    setSelectedProduct(null);
+    setStockHistory([]);
   };
 
   if (loading) return <div className="p-6">Memuat...</div>;
@@ -173,6 +198,13 @@ function Product() {
                       >
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
+                      <button
+                        onClick={() => openStockHistory(product)}
+                        className="text-white text-xs w-8 h-8 rounded-xs bg-green-700 hover:bg-green-800 transition-colors"
+                        title="Riwayat Stok"
+                      >
+                        📜
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -182,6 +214,7 @@ function Product() {
         </div>
       </div>
 
+      {/* Modal Tambah/Edit Produk */}
       {showModal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 modal-overlay">
           <div className="bg-white p-6 rounded-xs shadow-md w-full max-w-lg">
@@ -198,6 +231,54 @@ function Product() {
                 <button type="submit" className="px-4 py-2 bg-blue-800 text-white rounded-xs">Simpan</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Riwayat Stok */}
+      {showStockModal && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 modal-overlay">
+          <div className="bg-white p-6 rounded-xs shadow-md w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-2">
+              Riwayat Stok: {selectedProduct?.product_name}
+            </h2>
+            <p className="mb-4 text-gray-700">
+              {selectedProduct?.product_name} {selectedProduct?.type}, Tebal {selectedProduct?.thick}, {selectedProduct?.avg_weight_per_stick} Kg
+            </p>
+
+            {stockHistory.length > 0 ? (
+              <table className="min-w-full table-auto border-b border-gray-300">
+                <thead className="bg-gray-100 text-left">
+                  <tr>
+                    <th className="px-4 py-2 border-b border-gray-300">Tanggal</th>
+                    <th className="px-4 py-2 border-b border-gray-300">Jumlah</th>
+                    <th className="px-4 py-2 border-b border-gray-300">Tipe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stockHistory.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 border-b border-gray-300">
+                        {new Date(item.date).toLocaleDateString('id-ID', {
+                          day: '2-digit',
+                          month: 'short', 
+                          year: 'numeric'
+                        })}
+                      </td>
+                      <td className="px-4 py-2 border-b border-gray-300">{item.quantity}</td>
+                      <td className="px-4 py-2 border-b border-gray-300">{item.type === 'in' ? 'Masuk' : 'Keluar'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-gray-500">Belum ada riwayat stok.</p>
+            )}
+            <div className="mt-4 flex justify-end">
+              <button onClick={closeStockModal} className="px-4 py-2 bg-gray-300 rounded-xs">
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

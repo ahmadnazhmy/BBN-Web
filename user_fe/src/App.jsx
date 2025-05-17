@@ -9,7 +9,8 @@ import Cart from './pages/Cart';
 import Payment from './pages/Payment';
 import History from './pages/History';
 import Notification from './pages/Notification';
-import RetryPayment from './pages/RetryPayment'; 
+import RetryPayment from './pages/RetryPayment';
+import Company from './pages/Company';
 
 function App() {
   const user = JSON.parse(localStorage.getItem('user'));
@@ -23,9 +24,10 @@ function App() {
         <Route path="/editprofile" element={<EditProfile />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/payment" element={<Payment />} />
-        <Route path="/payment/retry/:orderId" element={<RetryPayment />} />  {/* retry route */}
+        <Route path="/payment/retry/:orderId" element={<RetryPayment />} />
         <Route path="/history" element={<History />} />
         <Route path="/notifications" element={<Notification />} />
+        <Route path="/company" element={<Company />} /> 
       </Routes>
     </Router>
   );

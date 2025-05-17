@@ -22,26 +22,29 @@ function Payment() {
   };
 
   useEffect(() => {
-    let result = payments; 
+  let result = payments;
 
-    if (filterMonthYear) {
-      const selectedYear = getYear(filterMonthYear);
-      const selectedMonth = getMonth(filterMonthYear) + 1; 
+  if (filterMonthYear) {
+    const selectedYear = getYear(filterMonthYear);
+    const selectedMonth = getMonth(filterMonthYear) + 1;
 
-      result = result.filter(p => {
-        const paymentDate = new Date(p.created_at);
-        const paymentYear = paymentDate.getFullYear();
-        const paymentMonth = paymentDate.getMonth() + 1;
+    result = result.filter(p => {
+      const paymentDate = new Date(p.created_at);
+      const paymentYear = paymentDate.getFullYear();
+      const paymentMonth = paymentDate.getMonth() + 1;
 
-        return paymentYear === selectedYear && paymentMonth === selectedMonth;
-      });
-    }
+      return paymentYear === selectedYear && paymentMonth === selectedMonth;
+    });
+  }
 
-    setFilteredPayments(result);
+  setFilteredPayments(result); // semua status tetap tampil
 
-    const total = result.reduce((sum, payment) => sum + payment.amount, 0);
-    setTotalAmount(total);
-  }, [payments, filterMonthYear]);
+  // total hanya yang status completed
+  const total = result
+    .filter(p => p.status === 'completed')
+    .reduce((sum, payment) => sum + payment.amount, 0);
+  setTotalAmount(total);
+}, [payments, filterMonthYear]);
 
   useEffect(() => {
     fetchPayments();
@@ -59,7 +62,7 @@ function Payment() {
         query.append('year', year);
       }
   
-      const res = await fetch(`https://bbn-web.up.railway.app/api/admin/payment?${query.toString()}`, {
+      const res = await fetch(`http://localhost:5000/api/admin/payment?${query.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
   
@@ -77,7 +80,7 @@ function Payment() {
   const updateStatus = async (paymentId, newStatus) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`https://bbn-web.up.railway.app/api/admin/payment/${paymentId}/status`, {
+      const res = await fetch(`http://localhost:5000/api/admin/payment/${paymentId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +102,7 @@ function Payment() {
   const updateMessage = async (paymentId, newMessage) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`https://bbn-web.up.railway.app/api/admin/payment/${paymentId}/message`, {
+      const res = await fetch(`http://localhost:5000/api/admin/payment/${paymentId}/message`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -238,7 +241,7 @@ function Payment() {
                   <td className="px-4 py-3 border-b border-gray-300">
                     {p.proof_of_payment ? (
                       <a
-                        href={`https://bbn-web.up.railway.app${p.proof_of_payment}`}
+                        href={`http://localhost:5000${p.proof_of_payment}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-white"

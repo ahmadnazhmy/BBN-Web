@@ -12,7 +12,7 @@ const Product = () => {
 
   async function fetchProducts() {
   try {
-    let url = 'https://bbn-web.up.railway.app/api/product'
+    let url = 'http://localhost:5000/api/product'
     if (productName) {
       const params = new URLSearchParams()
       params.append('product_name', productName)
@@ -43,7 +43,7 @@ const Product = () => {
       return alert(`Stok tidak cukup! (${p.stock} tersisa)`)
     }
     try {
-      await axios.post('https://bbn-web.up.railway.app/api/cart', {
+      await axios.post('http://localhost:5000/api/cart', {
         productId: p.product_id,
         quantity: qty,
       })

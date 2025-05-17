@@ -1,29 +1,30 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const CryptoJS = require('crypto-js');
 const db = require('../config/db');
 require('dotenv').config();
 
-const registerAdmin = async (req, res) => {
+const SECRET_KEY = process.env.ENCRYPTION_SECRET || 'default_32_char_secret_key';
+
+const decryptData = (encrypted) => {
   try {
-    const { username, password } = req.body;
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const query = 'INSERT INTO admin (username, password_hash) VALUES (?, ?)';
-    const values = [username, hashedPassword];
-
-    await db.query(query, values);
-
-    res.status(201).json({ message: 'Admin berhasil terdaftar' });
+    const bytes = CryptoJS.AES.decrypt(encrypted, SECRET_KEY);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    return JSON.parse(decrypted);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Admin gagal terdaftar' });
+    throw new Error('Gagal mendekripsi data');
   }
 };
 
 const register = async (req, res) => {
   try {
-    const { shop_name, email, phone, address, password } = req.body;
+    const { encrypted } = req.body;
+    if (!encrypted) {
+      return res.status(400).json({ message: 'Data terenkripsi tidak ditemukan' });
+    }
+
+    const { shop_name, email, phone, address, password } = decryptData(encrypted);
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const query = 'INSERT INTO user (shop_name, email, phone, address, password_hash) VALUES (?, ?, ?, ?, ?)';
@@ -32,14 +33,19 @@ const register = async (req, res) => {
     await db.query(query, values);
     res.status(201).json({ message: 'Pengguna berhasil terdaftar' });
   } catch (err) {
-    console.error(err);
+    console.error('Register error:', err.message);
     res.status(500).json({ message: 'Pengguna gagal terdaftar' });
   }
 };
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { encrypted } = req.body;
+    if (!encrypted) {
+      return res.status(400).json({ message: 'Data terenkripsi tidak ditemukan' });
+    }
+
+    const { email, password } = decryptData(encrypted);
 
     const [rows] = await db.query('SELECT * FROM user WHERE email = ?', [email]);
     const user = rows[0];
@@ -60,15 +66,33 @@ const login = async (req, res) => {
     );
 
     res.status(200).json({
-      message: 'Login successful',
+      message: 'Login berhasil',
       token,
       user_id: user.user_id,
       shop_name: user.shop_name,
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Login failed' });
+    console.error('Login error:', error.message);
+    res.status(500).json({ message: 'Login gagal' });
+  }
+};
+
+const registerAdmin = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const query = 'INSERT INTO admin (username, password_hash) VALUES (?, ?)';
+    const values = [username, hashedPassword];
+
+    await db.query(query, values);
+
+    res.status(201).json({ message: 'Admin berhasil terdaftar' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Admin gagal terdaftar' });
   }
 };
 
@@ -80,7 +104,7 @@ const adminLogin = async (req, res) => {
     const admin = rows[0];
 
     if (!admin) {
-      return res.status(404).json({ message: 'Admin not found' });
+      return res.status(404).json({ message: 'Admin tidak ditemukan' });
     }
 
     const isMatch = await bcrypt.compare(password, admin.password_hash);
@@ -89,7 +113,7 @@ const adminLogin = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: admin.admin_id, admin_id: admin.admin_id }, 
+      { id: admin.admin_id, admin_id: admin.admin_id },
       'RAHASIA',
       { expiresIn: '1h' }
     );
@@ -111,5 +135,5 @@ module.exports = {
   register,
   login,
   adminLogin,
-  registerAdmin, 
+  registerAdmin,
 };

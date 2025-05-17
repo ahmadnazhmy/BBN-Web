@@ -16,12 +16,24 @@ const checkout = async (req, res) => {
   try {
     await conn.beginTransaction()
 
+    for (const item of cart) {
+      const [[product]] = await conn.execute(
+        'SELECT stock FROM product WHERE product_id = ?',
+        [item.product_id]
+      )
+      if (!product) {
+        throw new Error(`Produk dengan ID ${item.product_id} tidak ditemukan`)
+      }
+      if (product.stock < item.quantity) {
+        throw new Error(`Stok tidak cukup untuk produk ID ${item.product_id}`)
+      }
+    }
+
     const [orderResult] = await conn.execute(
       `INSERT INTO \`order\` (user_id, order_date, status, total_price, method, location)
        VALUES (?, NOW(), 'pending', ?, ?, ?)`,
       [user_id, total_price, method, location]
     )
-
     const order_id = orderResult.insertId
 
     for (const item of cart) {
@@ -30,6 +42,13 @@ const checkout = async (req, res) => {
         `UPDATE product SET stock = stock - ? WHERE product_id = ?`,
         [item.quantity, item.product_id]
       )
+
+      await conn.execute(
+        `INSERT INTO stock_history (product_id, quantity, type)
+         VALUES (?, ?, 'out')`,
+        [item.product_id, item.quantity]
+      )
+
       await conn.execute(
         `INSERT INTO order_item (order_id, product_id, quantity, subtotal)
          VALUES (?, ?, ?, ?)`,
@@ -44,7 +63,7 @@ const checkout = async (req, res) => {
     await conn.rollback()
     conn.release()
     console.error(error)
-    res.status(500).json({ error: 'Gagal memproses checkout' })
+    res.status(500).json({ error: error.message || 'Gagal memproses checkout' })
   }
 }
 
@@ -82,8 +101,8 @@ const getOrderDetail = async (req, res) => {
     if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' })
 
     const [items] = await db.execute(
-      `SELECT oi.order_item_id, p.product_name, p.type, p.thick,
-              p.avg_weight_per_stick, oi.quantity, oi.subtotal
+      `SELECT oi.order_item_id, oi.quantity, oi.subtotal,
+              p.product_name, p.type, p.thick, p.avg_weight_per_stick
        FROM order_item oi
        JOIN product p ON oi.product_id = p.product_id
        WHERE oi.order_id = ?`,
