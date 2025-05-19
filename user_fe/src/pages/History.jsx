@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import jwtDecode from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -124,16 +124,19 @@ function History() {
                           })
                         : '-'}
                     </div>
-                    <div>
-                      <span className="font-semibold">Status Pesanan:</span>{' '}
-                      {translateOrderStatus(entry.order_status)}
-                    </div>
-                    {entry.order_status.toLowerCase() !== 'pending' && (
+
+                    {entry.payment_status.toLowerCase() !== 'pending' && (
                       <div>
-                        <span className="font-semibold">Status Pembayaran:</span>{' '}
-                        {translatePaymentStatus(entry.payment_status)}
+                        <span className="font-semibold">Status Pesanan:</span>{' '}
+                        {translateOrderStatus(entry.order_status)}
                       </div>
                     )}
+
+                    <div>
+                      <span className="font-semibold">Status Pembayaran:</span>{' '}
+                      {translatePaymentStatus(entry.payment_status)}
+                    </div>
+
                     <div>
                       <span className="font-semibold">Total:</span>{' '}
                       Rp {entry.total_price.toLocaleString()}

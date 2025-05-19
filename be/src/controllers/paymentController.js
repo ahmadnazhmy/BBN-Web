@@ -43,10 +43,6 @@ const uploadProof = async (req, res) => {
       `, [order_id, user_id, amount, filePath]);
     }
 
-    await conn.execute(`
-      UPDATE \`order\` SET status = 'processing' WHERE order_id = ?
-    `, [order_id]);
-
     conn.release();
     res.status(201).json({ message: 'Bukti pembayaran berhasil diupload' });
   } catch (error) {
@@ -56,7 +52,6 @@ const uploadProof = async (req, res) => {
 };
 
 const getAllPayments = async (req, res) => {
-
   try {
     let query = `
       SELECT 
@@ -73,13 +68,10 @@ const getAllPayments = async (req, res) => {
       FROM payment p
       JOIN user u ON p.user_id = u.user_id
       JOIN \`order\` o ON p.order_id = o.order_id
+      ORDER BY p.created_at DESC
     `;
-    
-    const params = [];
 
-    query += ` ORDER BY p.created_at DESC`;
-
-    const [payments] = await db.execute(query, params);
+    const [payments] = await db.execute(query);
 
     if (payments.length === 0) {
       return res.status(404).json({ error: 'Tidak ada data pembayaran' });
@@ -112,6 +104,18 @@ const updatePaymentStatus = async (req, res) => {
         SET status = ?, message = NULL, verified_at = NOW()
         WHERE payment_id = ?
       `, [status, paymentId]);
+
+      const [[paymentRow]] = await conn.execute(
+        `SELECT order_id FROM payment WHERE payment_id = ?`,
+        [paymentId]
+      );
+
+      if (paymentRow) {
+        await conn.execute(`
+          UPDATE \`order\` SET status = 'dikemas' WHERE order_id = ?
+        `, [paymentRow.order_id]);
+      }
+
     } else if (status === 'pending' || status === 'failed') {
       await conn.execute(`
         UPDATE payment 
@@ -120,12 +124,12 @@ const updatePaymentStatus = async (req, res) => {
       `, [status, paymentId]);
     }
 
-    const [[paymentRow]] = await conn.execute(
+    const [[paymentRowUser]] = await conn.execute(
       `SELECT user_id, order_id FROM payment WHERE payment_id = ?`,
       [paymentId]
     );
 
-    if (!paymentRow) {
+    if (!paymentRowUser) {
       await conn.rollback();
       conn.release();
       return res.status(404).json({ error: 'Pembayaran tidak ditemukan' });
@@ -137,12 +141,12 @@ const updatePaymentStatus = async (req, res) => {
       failed: 'pembayaran Anda gagal. Silakan cek kembali dan coba upload bukti baru.'
     };
 
-    const notifMessage = `Status pembayaran untuk Pesanan #${paymentRow.order_id} ${textMap[status]}`;
+    const notifMessage = `Status pembayaran untuk Pesanan #${paymentRowUser.order_id} ${textMap[status]}`;
 
     await conn.execute(
       `INSERT INTO notification (user_id, order_id, message, is_read, created_at)
        VALUES (?, ?, ?, FALSE, NOW())`,
-      [paymentRow.user_id, paymentRow.order_id, notifMessage]
+      [paymentRowUser.user_id, paymentRowUser.order_id, notifMessage]
     );
 
     await conn.commit();
@@ -156,7 +160,6 @@ const updatePaymentStatus = async (req, res) => {
     res.status(500).json({ error: 'Terjadi kesalahan saat memperbarui status pembayaran' });
   }
 };
-
 
 const updatePaymentMessage = async (req, res) => {
   const paymentId = req.params.id;
