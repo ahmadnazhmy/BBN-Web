@@ -1,6 +1,4 @@
 import React from 'react';
-import Nav from '../components/Nav';
-import Footer from '../components/Footer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faIndustry, faLightbulb, faThumbsUp } from '@fortawesome/free-solid-svg-icons';
 import BG9 from '../assets/images/_RRR5517.JPG';
@@ -9,8 +7,6 @@ import BG10 from '../assets/images/IMG_9653.JPG';
 function Company() {
   return (
     <>
-      <Nav />
-
       <div
         className="relative bg-cover bg-center bg-no-repeat shadow-md rounded-xs p-4 sm:p-6 text-white overflow-hidden h-72 sm:h-96 md:h-[500px] border-b border-gray-300"
         style={{ backgroundImage: `url(${BG9})` }}
@@ -79,8 +75,6 @@ function Company() {
           />
         </div>
       </div>
-
-      <Footer />
     </>
   );
 }

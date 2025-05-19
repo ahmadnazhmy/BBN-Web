@@ -239,20 +239,20 @@ const cancelPayment = async (req, res) => {
       )
     }
 
+    await conn.execute('UPDATE `order` SET status = ? WHERE order_id = ?', ['cancel', orderId])
     await conn.execute('DELETE FROM payment WHERE order_id = ? AND user_id = ?', [orderId, userId])
-    await conn.execute('DELETE FROM order_item WHERE order_id = ?', [orderId])
-    await conn.execute('DELETE FROM `order` WHERE order_id = ? AND user_id = ?', [orderId, userId])
 
     await conn.commit()
     conn.release()
-    res.json({ message: 'Pembayaran dibatalkan dan stok dikembalikan' })
+    res.json({ message: 'Pesanan dibatalkan dan stok dikembalikan' })
   } catch (err) {
     await conn.rollback()
     conn.release()
     console.error(err)
-    res.status(500).json({ error: 'Gagal membatalkan pembayaran' })
+    res.status(500).json({ error: 'Gagal membatalkan pesanan' })
   }
 }
+
 
 const confirmDelivery = async (req, res) => {
   const userId = req.user?.id;

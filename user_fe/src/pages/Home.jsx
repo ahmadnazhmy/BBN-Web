@@ -6,6 +6,7 @@ import Promotion from '../components/Promotion'
 import Footer from '../components/Footer'
 import Gallery from '../components/Gallery'
 import Contact from '../components/Contact'
+import Company from '../components/Company'
 
 function Home() {
   return (
@@ -22,6 +23,10 @@ function Home() {
 
       <div className="border-b border-gray-300">
         <Promotion />
+      </div>
+
+      <div className="border-b border-gray-300">
+        <Company/>
       </div>
 
       <div className="border-b border-gray-300">

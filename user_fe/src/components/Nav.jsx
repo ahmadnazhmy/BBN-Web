@@ -49,12 +49,6 @@ export default function Nav() {
             <img src={Logo} alt="Logo" className="w-10 mr-2" />
             <h1 className="hidden lg:block text-base font-bold">Berlian Baja Nusantara</h1>
           </Link>
-          <Link
-            to="/company"
-            className="text-base text-gray-500 hover:text-black transition duration-200"
-          >
-            Tentang Kami
-          </Link>
         </div>
 
         <div className="flex items-center justify-end">
