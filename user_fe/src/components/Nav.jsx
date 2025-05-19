@@ -51,7 +51,7 @@ export default function Nav() {
           </Link>
           <Link
             to="/company"
-            className="hidden md:block text-base text-gray-500 hover:text-black transition duration-200"
+            className="text-base text-gray-500 hover:text-black transition duration-200"
           >
             Tentang Kami
           </Link>
