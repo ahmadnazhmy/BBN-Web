@@ -23,7 +23,7 @@ function App() {
         <Route path="/editprofile" element={<EditProfile />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/payment" element={<Payment />} />
-        <Route path="/payment/:orderId" element={<Payment />} />  {/* <== tambahkan ini */}
+        <Route path="/payment/:orderId" element={<Payment />} />  
         <Route path="/payment/retry/:orderId" element={<RetryPayment />} />
         <Route path="/history" element={<History />} />
         <Route path="/notifications" element={<Notification />} />

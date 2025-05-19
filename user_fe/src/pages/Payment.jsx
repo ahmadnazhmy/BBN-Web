@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 
 function Payment() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const orderId = searchParams.get('order_id')
   const [order, setOrder] = useState(null)
   const [file, setFile] = useState(null)
@@ -11,10 +12,10 @@ function Payment() {
 
   useEffect(() => {
     if (!token) {
-      navigate('/login'); 
-      return;
+      navigate('/login')
+      return
     }
-    
+
     const fetchOrder = async () => {
       try {
         const res = await fetch(`https://bbn-web-production.up.railway.app/api/order/${orderId}`, {
@@ -39,9 +40,7 @@ function Payment() {
     if (orderId) {
       fetchOrder()
     }
-  }, [orderId, token])
-
-  const navigate = useNavigate()
+  }, [orderId, token, navigate])
 
   const handleUpload = async (e) => {
     e.preventDefault()
@@ -81,7 +80,7 @@ function Payment() {
 
   const handleCancelPayment = async () => {
     if (!window.confirm('Apakah kamu yakin ingin membatalkan pembayaran ini?')) return
-  
+
     try {
       const res = await fetch(`https://bbn-web-production.up.railway.app/api/order/${orderId}/cancel-payment`, {
         method: 'POST',
@@ -89,17 +88,17 @@ function Payment() {
           Authorization: `Bearer ${token}`
         }
       })
-  
+
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || 'Gagal membatalkan pembayaran')
-  
+
       alert('Pembayaran berhasil dibatalkan')
       navigate('/')
     } catch (err) {
       console.error('Cancel error:', err)
       alert(err.message || 'Terjadi kesalahan saat membatalkan')
     }
-  }  
+  }
 
   if (!order) return <div className="p-6">Memuat data order...</div>
 
@@ -112,15 +111,15 @@ function Payment() {
             <tbody>
               <tr>
                 <td className="font-bold align-top pr-4">Alamat</td>
-                <td className='align-top'>{order.location}</td>
+                <td className="align-top">{order.location}</td>
               </tr>
               <tr>
                 <td className="font-bold align-top pr-4">Tanggal</td>
-                <td className='align-top'>{new Date(order.order_date).toLocaleString()}</td>
+                <td className="align-top">{new Date(order.order_date).toLocaleString()}</td>
               </tr>
             </tbody>
           </table>
-  
+
           {(!order.payment || order.payment.status === 'pending') && (
             <form onSubmit={handleUpload} className="space-y-4 pt-4">
               <div>
@@ -144,7 +143,7 @@ function Payment() {
                   className="hidden"
                 />
               </div>
-  
+
               <button
                 type="submit"
                 className="w-full bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-xs"
@@ -165,7 +164,10 @@ function Payment() {
           <p className="font-bold mb-3">Daftar Barang</p>
           <ul className="space-y-2">
             {order.items?.map((item, index) => (
-              <li key={`${item.product_id}-${index}`} className="flex justify-between border-b pb-2 text-sm">
+              <li
+                key={`${item.product_id}-${index}`}
+                className="flex justify-between border-b pb-2 text-sm"
+              >
                 <span className="flex items-center gap-x-2">
                   <span className="bg-blue-800 text-white rounded-xs w-6 h-6 flex items-center justify-center text-xs">
                     {item.quantity}
@@ -181,14 +183,14 @@ function Payment() {
               </li>
             ))}
           </ul>
-  
+
           <div className="text-right mt-4 font-bold text-lg">
             Total: Rp{order.total_price.toLocaleString()}
           </div>
         </div>
       </div>
     </div>
-  )  
+  )
 }
 
 export default Payment
