@@ -17,7 +17,7 @@ function RetryPayment() {
     
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/order/${orderId}`, {
+        const res = await fetch(`https://precious-eagerness.up.railway.app/api/order/${orderId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -48,7 +48,7 @@ function RetryPayment() {
     formData.append('amount', amount);
 
     try {
-      const res = await fetch('http://localhost:5000/api/upload-proof', {
+      const res = await fetch('https://precious-eagerness.up.railway.app/api/upload-proof', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }, 
         body: formData
@@ -66,7 +66,7 @@ function RetryPayment() {
   const handleCancelPayment = async () => {
     if (!window.confirm('Apakah kamu yakin ingin membatalkan pembayaran ini?')) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/order/${orderId}/cancel-payment`, {
+      const res = await fetch(`https://precious-eagerness.up.railway.app/api/order/${orderId}/cancel-payment`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -21,7 +21,7 @@ function EditProfile() {
 
     const fetchProfile = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/profile', {
+        const res = await fetch('https://precious-eagerness.up.railway.app/api/profile', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ function EditProfile() {
     const updatedData = { shop_name, email, phone, address };
 
     try {
-      const res = await fetch('http://localhost:5000/api/profile', {
+      const res = await fetch('https://precious-eagerness.up.railway.app/api/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

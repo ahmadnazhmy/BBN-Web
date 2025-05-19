@@ -38,7 +38,7 @@ const Cart = () => {
 
     const fetchUser = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/profile', {
+        const response = await fetch('https://precious-eagerness.up.railway.app/api/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -93,7 +93,7 @@ const Cart = () => {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch('http://localhost:5000/api/checkout', {
+      const response = await fetch('https://precious-eagerness.up.railway.app/api/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

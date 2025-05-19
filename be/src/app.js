@@ -19,7 +19,11 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const allowedOrigins = ['http://localhost:5174', 'http://localhost:5173'];
+const allowedOrigins = [
+  'https://bbn-ra17opt8q-ahmad-nazhmy-zahrians-projects.vercel.app',
+  'https://bbn-web-i9wq.vercel.app',
+  'http://localhost:5173',  
+];
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -45,7 +49,7 @@ app.use('/api', notificationRoutes);
 app.use('/api', dashboardRoutes);
 
 app.get('/', (req, res) => {
-  res.send('API is running');
+  res.send('API berjalan');
 });
 
 app.use((req, res) => {

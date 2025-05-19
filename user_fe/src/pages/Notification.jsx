@@ -9,7 +9,7 @@ const Notification = ({ isOpen, setIsOpen }) => {
     if (!token) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/notification', {
+      const res = await fetch('https://precious-eagerness.up.railway.app/api/notification', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -24,7 +24,7 @@ const Notification = ({ isOpen, setIsOpen }) => {
     if (!token) return;
 
     try {
-      await fetch(`http://localhost:5000/api/notification/${id}/read`, {
+      await fetch(`https://precious-eagerness.up.railway.app/api/notification/${id}/read`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ const Notification = ({ isOpen, setIsOpen }) => {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/order/${notif.order_id}/confirm-delivery`, {
+      const res = await fetch(`https://precious-eagerness.up.railway.app/api/order/${notif.order_id}/confirm-delivery`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ const Notification = ({ isOpen, setIsOpen }) => {
     if (!window.confirm('Yakin mau hapus semua notifikasi?')) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/notification', {
+      const res = await fetch('https://precious-eagerness.up.railway.app/api/notification', {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
