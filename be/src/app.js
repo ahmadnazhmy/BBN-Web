@@ -26,7 +26,7 @@ app.use((req, res, next) => {
 });
 
 const allowedOrigins = [
-  'https://bbn-ra17opt8q-ahmad-nazhmy-zahrians-projects.vercel.app',
+  'https://bbn-web-ahmad-nazhmy-zahrians-projects.vercel.app/',
   'https://bbn-web-i9wq.vercel.app',
   'http://localhost:5173',
 ];
