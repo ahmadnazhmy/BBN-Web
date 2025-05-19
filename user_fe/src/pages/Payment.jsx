@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 
 function Payment() {
-  const [searchParams] = useSearchParams()
+  const { orderId } = useParams()
   const navigate = useNavigate()
-  const orderId = searchParams.get('order_id')
   const [order, setOrder] = useState(null)
   const [file, setFile] = useState(null)
   const [amount, setAmount] = useState('')

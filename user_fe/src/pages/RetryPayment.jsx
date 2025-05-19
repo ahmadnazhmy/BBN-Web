@@ -17,7 +17,7 @@ function RetryPayment() {
     
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`https://precious-eagerness.up.railway.app/api/order/${orderId}`, {
+        const res = await fetch(`https://bbn-web-production.up.railway.app/api/order/${orderId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
