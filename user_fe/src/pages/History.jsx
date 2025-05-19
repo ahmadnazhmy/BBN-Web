@@ -46,19 +46,14 @@ function History() {
       }
     };
 
-    if (token) {
-      try {
-        jwtDecode(token);
-        fetchHistory();
-      } catch (err) {
-        setError('Token tidak valid');
-        setLoading(false);
-      }
-    } else {
-      setError('Token tidak ditemukan');
+    try {
+      jwtDecode(token);
+      fetchHistory();
+    } catch (err) {
+      setError('Token tidak valid');
       setLoading(false);
     }
-  }, [token]);
+  }, [token, navigate]);
 
   const translateOrderStatus = (status) => {
     switch (status.toLowerCase()) {
@@ -133,10 +128,12 @@ function History() {
                       <span className="font-semibold">Status Pesanan:</span>{' '}
                       {translateOrderStatus(entry.order_status)}
                     </div>
-                    <div>
-                      <span className="font-semibold">Status Pembayaran:</span>{' '}
-                      {translatePaymentStatus(entry.payment_status)}
-                    </div>
+                    {entry.order_status.toLowerCase() !== 'pending' && (
+                      <div>
+                        <span className="font-semibold">Status Pembayaran:</span>{' '}
+                        {translatePaymentStatus(entry.payment_status)}
+                      </div>
+                    )}
                     <div>
                       <span className="font-semibold">Total:</span>{' '}
                       Rp {entry.total_price.toLocaleString()}
