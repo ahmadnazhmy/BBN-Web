@@ -21,7 +21,7 @@ function History() {
     
     const fetchHistory = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/user/history', {
+        const res = await fetch('https://bbn-web-production.up.railway.app/api/user/history', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

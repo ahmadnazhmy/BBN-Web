@@ -33,7 +33,7 @@ function Login() {
     try {
       const encrypted = encryptData({ email, password });
 
-      const res = await fetch('https://precious-eagerness.up.railway.app/api/login', {
+      const res = await fetch('https://bbn-web-production.up.railway.app/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

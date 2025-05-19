@@ -25,7 +25,7 @@ function Register() {
     const encrypted = encryptData(data);
 
     try {
-      const response = await fetch('https://precious-eagerness.up.railway.app/api/register', {
+      const response = await fetch('https://bbn-web-production.up.railway.app/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
