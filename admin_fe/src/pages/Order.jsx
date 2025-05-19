@@ -30,7 +30,7 @@ export default function Order() {
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem('adminToken');
-        const res = await fetch('http://localhost:5000/api/admin/orders', {
+        const res = await fetch('https://bbn-web-production.up.railway.app/api/admin/orders', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Gagal mengambil data order');
@@ -107,7 +107,7 @@ export default function Order() {
   const updateStatus = async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/status`, {
+      const res = await fetch(`https://bbn-web-production.up.railway.app/api/admin/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

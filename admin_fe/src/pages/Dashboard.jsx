@@ -23,7 +23,7 @@ function Dashboard() {
   useEffect(() => {
     const token = localStorage.getItem('token');
 
-    fetch('http://localhost:5000/api/summary', {
+    fetch('https://bbn-web-production.up.railway.app/api/summary', {
       headers: {
         Authorization: `Bearer ${token}`
       }

@@ -26,7 +26,7 @@ function Product() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/product');
+        const res = await fetch('https://bbn-web-production.up.railway.app/api/product');
         if (!res.ok) throw new Error('Failed to fetch products');
         const data = await res.json();
         setProducts(data);
@@ -71,8 +71,8 @@ function Product() {
     e.preventDefault();
     const method = editData ? 'PUT' : 'POST';
     const url = editData
-      ? `http://localhost:5000/api/product/${editData.product_id}`
-      : 'http://localhost:5000/api/product';
+      ? `https://bbn-web-production.up.railway.app/api/product/${editData.product_id}`
+      : 'https://bbn-web-production.up.railway.app/api/product';
 
     try {
       const res = await fetch(url, {
@@ -105,7 +105,7 @@ function Product() {
   const handleDelete = async (productId) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
       try {
-        const res = await fetch(`http://localhost:5000/api/product/${productId}`, {
+        const res = await fetch(`https://bbn-web-production.up.railway.app/api/product/${productId}`, {
           method: 'DELETE',
         });
         if (res.ok) {
@@ -124,7 +124,7 @@ function Product() {
 
   const openStockHistory = async (product) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/stock/product/${product.product_id}`);
+      const res = await fetch(`https://bbn-web-production.up.railway.app/api/stock/product/${product.product_id}`);
       if (!res.ok) throw new Error('Gagal mengambil riwayat stok');
       const data = await res.json();
       setStockHistory(data);
