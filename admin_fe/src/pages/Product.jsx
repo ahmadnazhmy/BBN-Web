@@ -18,7 +18,6 @@ function Product() {
   });
   const [message, setMessage] = useState(null); 
 
-  // State untuk riwayat stok
   const [stockHistory, setStockHistory] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showStockModal, setShowStockModal] = useState(false);
@@ -235,7 +234,6 @@ function Product() {
         </div>
       )}
 
-      {/* Modal Riwayat Stok */}
       {showStockModal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 modal-overlay">
           <div className="bg-white p-6 rounded-xs shadow-md w-full max-w-2xl max-h-[90vh] overflow-y-auto">

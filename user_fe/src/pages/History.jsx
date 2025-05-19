@@ -158,7 +158,7 @@ function History() {
                       </button>
                     )}
 
-                    {entry.payment_status === 'pending' && (
+                    {entry.order_status === 'pending' && (
                       <button
                         onClick={() => navigate(`/payment/${entry.order_id}`)}
                         className="text-sm text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded"
