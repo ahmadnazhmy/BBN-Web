@@ -96,7 +96,7 @@ function History() {
               return (
                 <div
                   key={entry.order_id}
-                  className="bg-white border border-gray-300 rounded-md shadow p-4 flex flex-col md:flex-row md:items-center md:justify-between"
+                  className="bg-white border border-gray-300 rounded-xs shadow p-4 flex flex-col md:flex-row md:items-center md:justify-between"
                 >
                   <div className="mb-2 md:mb-0 md:flex md:gap-6 md:items-center">
                     <div>
@@ -130,7 +130,7 @@ function History() {
                       onClick={() =>
                         setSelectedItems({ items: entry.items, proof: entry.proof_of_payment })
                       }
-                      className="text-sm text-white bg-blue-800 hover:bg-blue-900 px-3 py-1 rounded"
+                      className="text-sm text-white bg-blue-800 hover:bg-blue-900 px-3 py-1 rounded-xs"
                     >
                       Lihat Item
                     </button>
@@ -138,7 +138,7 @@ function History() {
                     {paymentStatus === 'failed' && (
                       <button
                         onClick={() => navigate(`/payment/retry/${entry.order_id}`)}
-                        className="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded"
+                        className="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded-xs"
                       >
                         Bayar Ulang
                       </button>
@@ -147,7 +147,7 @@ function History() {
                     {orderStatus === 'pending' && (
                       <button
                         onClick={() => navigate(`/payment?order_id=${entry.order_id}`)}
-                        className="text-sm text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded"
+                        className="text-sm text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded-xs"
                       >
                         Selesaikan Pembayaran
                       </button>
@@ -161,13 +161,13 @@ function History() {
 
         {selectedItems && (
           <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30 p-4">
-            <div className="bg-white rounded-lg max-w-md md:max-w-3xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+            <div className="bg-white rounded-xs max-w-md md:max-w-3xl w-full max-h-[90vh] overflow-y-auto relative p-6">
               <h3 className="text-lg md:text-xl font-semibold mb-4">Detail Item Pesanan</h3>
               <ul className="list-disc list-inside space-y-2 max-h-[60vh] overflow-y-auto">
                 {selectedItems.items.length > 0 ? (
                   selectedItems.items.map((item) => (
                     <li className="flex items-center" key={item.order_item_id}>
-                      <span className="bg-blue-800 text-white rounded w-6 h-6 flex items-center justify-center text-xs mr-2">
+                      <span className="bg-blue-800 text-white rounded-xs w-6 h-6 flex items-center justify-center text-xs mr-2">
                         {item.quantity}
                       </span>
                       <span className="truncate max-w-[70%]">
@@ -189,7 +189,7 @@ function History() {
                     href={`https://bbn-web-production.up.railway.app${selectedItems.proof}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-900 text-sm text-center"
+                    className="block bg-blue-800 text-white px-4 py-2 rounded-xs hover:bg-blue-900 text-sm text-center"
                   >
                     Lihat Bukti Pembayaran
                   </a>

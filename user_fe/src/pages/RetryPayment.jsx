@@ -86,7 +86,7 @@ function RetryPayment() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
       <div className="flex flex-col md:flex-row gap-6 w-full max-w-5xl bg-white border border-gray-300 shadow-md rounded-xs p-6">
         <div className="w-full md:w-2/3 space-y-4">
-          <h2 className="text-2xl font-bold text-center md:text-left">Bayar Ulang Pesanan #{orderId}</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-center md:text-left">Bayar Ulang Pesanan #{orderId}</h2>
           <table className="w-full">
             <tbody>
               <tr>

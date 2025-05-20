@@ -137,7 +137,7 @@ function Payment() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
       <div className="flex flex-col md:flex-row gap-6 w-full max-w-5xl bg-white border border-gray-300 shadow-md rounded-xs p-6">
         <div className="w-full md:w-2/3 space-y-4">
-          <h2 className="text-2xl font-bold text-center md:text-left">Pembayaran</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-center md:text-left">Pembayaran</h2>
 
           {successMessage && (
             <div className="p-3 mb-4 bg-green-200 text-green-800 rounded">{successMessage}</div>
@@ -152,6 +152,10 @@ function Payment() {
               <tr>
                 <td className="font-bold align-top pr-4">Tanggal</td>
                 <td className="align-top">{formatDate(order.order_date)}</td>
+              </tr>
+              <tr>
+                <td className="font-bold align-top pr-4">No. Rekening</td>
+                <td className="align-top">Bank Mandiri 1670006211527</td>
               </tr>
             </tbody>
           </table>
