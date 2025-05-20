@@ -74,6 +74,10 @@ function History() {
     }
   };
 
+  const shouldShowPaymentButton = (orderStatus, paymentStatus) => {
+    return orderStatus === 'pending' && (!paymentStatus || paymentStatus === 'null' || paymentStatus === '');
+  };
+
   if (loading) return <div className="p-6">Loading...</div>;
   if (error) return <div className="p-6 text-red-500">{error}</div>;
 
@@ -144,7 +148,7 @@ function History() {
                       </button>
                     )}
 
-                    {orderStatus === 'pending' && (
+                    {shouldShowPaymentButton(orderStatus, paymentStatus) && (
                       <button
                         onClick={() => navigate(`/payment?order_id=${entry.order_id}`)}
                         className="text-sm text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded-xs"
@@ -184,24 +188,24 @@ function History() {
               </ul>
 
               {selectedItems.proof && (
-                  <div className="mt-6">
-                    <a
-                      href={selectedItems.proof}  
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block bg-blue-800 text-white px-4 py-2 rounded-xs hover:bg-blue-900 text-sm text-center"
-                    >
-                      Lihat Bukti Pembayaran
-                    </a>
-                  </div>
-                )}
+                <div className="mt-6">
+                  <a
+                    href={selectedItems.proof}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-blue-800 text-white px-4 py-2 rounded-xs hover:bg-blue-900 text-sm text-center"
+                  >
+                    Lihat Bukti Pembayaran
+                  </a>
+                </div>
+              )}
 
               <button
                 onClick={() => setSelectedItems(null)}
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
                 aria-label="Close modal"
               >
-                <FontAwesomeIcon icon={faXmark} className='m-4 text-lg md:text-2xl'/>
+                <FontAwesomeIcon icon={faXmark} className='m-4 text-lg md:text-2xl' />
               </button>
             </div>
           </div>

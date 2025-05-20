@@ -139,10 +139,6 @@ function Payment() {
         <div className="w-full md:w-2/3 space-y-4">
           <h2 className="text-xl md:text-2xl font-bold text-center md:text-left">Pembayaran</h2>
 
-          {successMessage && (
-            <div className="p-3 mb-4 bg-green-200 text-green-800 rounded">{successMessage}</div>
-          )}
-
           <table className="w-full">
             <tbody>
               <tr>
