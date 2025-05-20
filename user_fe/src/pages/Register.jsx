@@ -103,14 +103,14 @@ function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-white w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black"
+                className="bg-white w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xs focus:outline-none focus:ring-1 focus:ring-black"
               />
             </div>
           </div>
 
           <button
             type="submit"
-            className="mt-6 w-full py-2 bg-blue-800 text-white rounded-md hover:bg-blue-900 transition duration-200"
+            className="mt-6 w-full py-2 bg-blue-800 text-white rounded-xs hover:bg-blue-900 transition duration-200"
           >
             Daftar
           </button>

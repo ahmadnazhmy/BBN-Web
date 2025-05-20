@@ -119,7 +119,7 @@ function Catalog() {
           <div
             key={product.id}
             onClick={() => handleProductClick(product)}
-            className="flex-shrink-0 bg-white border border-gray-300 rounded shadow-md cursor-pointer transform transition duration-200 hover:-translate-y-1 hover:shadow-lg"
+            className="flex-shrink-0 bg-white border border-gray-300 rounded-xs shadow-md cursor-pointer transform transition duration-200 hover:-translate-y-1 hover:shadow-lg"
             style={{ width: '180px' }}
           >
             <div className="flex items-center justify-center overflow-hidden rounded-t h-40">
@@ -150,7 +150,7 @@ function Catalog() {
               <img
                 src={selectedProduct.image}
                 alt={selectedProduct.name}
-                className="w-full aspect-square object-cover rounded"
+                className="w-full aspect-square object-cover rounded-xs"
               />
             </div>
 

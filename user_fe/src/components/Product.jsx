@@ -65,7 +65,7 @@ const Product = () => {
         <h1 className="text-xl md:text-2xl font-bold">Cari Produk Kami</h1>
         <div className="relative w-full md:w-48">
           <select
-            className="w-full appearance-none border border-gray-300 rounded px-4 py-2 bg-white"
+            className="w-full appearance-none border border-gray-300 rounded-xs px-4 py-2 bg-white"
             value={productName}
             onChange={e => setProductName(e.target.value)}
           >
@@ -98,7 +98,7 @@ const Product = () => {
             {products.map(p => (
               <div
                 key={p.product_id}
-                className="border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                className="border border-gray-200 rounded-xs p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
               >
                 <div className="flex-1">
                   <h2 className="font-bold text-base md:text-lg">
@@ -113,7 +113,7 @@ const Product = () => {
                     <span className="font-bold whitespace-nowrap">
                       Rp{p.unit_price.toLocaleString()}
                     </span>
-                    <div className="flex items-center border border-gray-300 rounded">
+                    <div className="flex items-center border border-gray-300 rounded-xs">
                       <button onClick={() => dec(p.product_id)} className="px-3 py-1">
                         <FontAwesomeIcon icon={faMinus} />
                       </button>
@@ -124,7 +124,7 @@ const Product = () => {
                     </div>
                     <button
                       onClick={() => handleAddToCart(p)}
-                      className="whitespace-nowrap bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded"
+                      className="whitespace-nowrap bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-xs"
                     >
                       Tambah
                     </button>

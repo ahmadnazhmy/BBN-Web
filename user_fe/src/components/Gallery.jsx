@@ -24,7 +24,7 @@ function Gallery() {
 
   return (
     <div className="p-4 md:px-24 md:py-16">
-      <h1 className="text-center text-xl md:text-2xl lg:text-3xl font-bold mb-4">
+      <h1 className="text-center text-xl md:text-2xl font-bold mb-4">
         Galeri Produksi
       </h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-12">
