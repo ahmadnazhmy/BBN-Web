@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -22,7 +21,6 @@ function History() {
     const fetchHistory = async () => {
       try {
         const res = await fetch('https://bbn-web-production.up.railway.app/api/user/history', {
-          method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
@@ -39,51 +37,34 @@ function History() {
         } else {
           setError(result.message || 'Gagal mengambil riwayat');
         }
-      } catch (err) {
+      } catch {
         setError('Gagal mengambil data riwayat');
       } finally {
         setLoading(false);
       }
     };
 
-    try {
-      jwtDecode(token);
-      fetchHistory();
-    } catch (err) {
-      setError('Token tidak valid');
-      setLoading(false);
-    }
+    fetchHistory();
   }, [token, navigate]);
 
-  const translateOrderStatus = (status = '') => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'Belum Bayar';
-      case 'processing':
-        return 'Sedang Dikemas';
-      case 'shipped':
-        return 'Sedang Diantar';
-      case 'delivered':
-        return 'Sudah Diterima';
-      case 'picked_up':
-        return 'Sudah Diambil';
-      case 'cancel':
-        return 'Dibatalkan';
-      default:
-        return status;
+  const translateOrderStatus = (status) => {
+    switch ((status || '').toLowerCase()) {
+      case 'pending': return 'Belum Bayar';
+      case 'processing': return 'Sedang Dikemas';
+      case 'shipped': return 'Sedang Diantar';
+      case 'delivered': return 'Sudah Diterima';
+      case 'picked_up': return 'Sudah Diambil';
+      case 'cancel': return 'Dibatalkan';
+      default: return status;
     }
   };
 
-  const translatePaymentStatus = (status = '') => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'Sedang Verifikasi';
-      case 'completed':
-        return 'Pembayaran Berhasil';
-      case 'failed':
-        return 'Pembayaran Gagal';
-      default:
-        return 'Belum Bayar';
+  const translatePaymentStatus = (status) => {
+    switch ((status || '').toLowerCase()) {
+      case 'pending': return 'Sedang Verifikasi';
+      case 'completed': return 'Pembayaran Berhasil';
+      case 'failed': return 'Pembayaran Gagal';
+      default: return 'Belum Bayar';
     }
   };
 
@@ -103,75 +84,80 @@ function History() {
         ) : (
           <div className="space-y-4">
             {history
-              .filter(
-                (entry) =>
-                  (entry.payment_status || '') !== 'Belum Bayar' &&
-                  (entry.order_status || '').toLowerCase() !== 'cancel'
-              )
-              .map((entry) => (
-                <div
-                  key={entry.order_id}
-                  className="bg-white border border-gray-300 rounded-md shadow p-4 flex flex-col md:flex-row md:items-center md:justify-between"
-                >
-                  <div className="mb-2 md:mb-0 md:flex md:gap-6 md:items-center">
-                    <div>
-                      <span className="font-semibold">Tanggal:</span>{' '}
-                      {entry.order_date
-                        ? new Date(entry.order_date).toLocaleDateString('id-ID', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })
-                        : '-'}
-                    </div>
+              .filter((entry) => {
+                const paymentStatus = (entry.payment_status || '').toLowerCase();
+                const orderStatus = (entry.order_status || '').toLowerCase();
+                return paymentStatus !== 'belum bayar' && orderStatus !== 'cancel';
+              })
+              .map((entry) => {
+                const paymentStatus = (entry.payment_status || '').toLowerCase();
+                const orderStatus = (entry.order_status || '').toLowerCase();
 
-                    {(entry.payment_status || '').toLowerCase() !== 'pending' && (
+                return (
+                  <div
+                    key={entry.order_id}
+                    className="bg-white border border-gray-300 rounded-md shadow p-4 flex flex-col md:flex-row md:items-center md:justify-between"
+                  >
+                    <div className="mb-2 md:mb-0 md:flex md:gap-6 md:items-center">
                       <div>
-                        <span className="font-semibold">Status Pesanan:</span>{' '}
-                        {translateOrderStatus(entry.order_status)}
+                        <span className="font-semibold">Tanggal:</span>{' '}
+                        {entry.order_date
+                          ? new Date(entry.order_date).toLocaleDateString('id-ID', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            })
+                          : '-'}
                       </div>
-                    )}
 
-                    <div>
-                      <span className="font-semibold">Status Pembayaran:</span>{' '}
-                      {translatePaymentStatus(entry.payment_status)}
+                      {paymentStatus !== 'pending' && (
+                        <div>
+                          <span className="font-semibold">Status Pesanan:</span>{' '}
+                          {translateOrderStatus(entry.order_status)}
+                        </div>
+                      )}
+
+                      <div>
+                        <span className="font-semibold">Status Pembayaran:</span>{' '}
+                        {translatePaymentStatus(entry.payment_status)}
+                      </div>
+
+                      <div>
+                        <span className="font-semibold">Total:</span>{' '}
+                        Rp {entry.total_price.toLocaleString()}
+                      </div>
                     </div>
+                    <div className="flex gap-2 mt-2 md:mt-0">
+                      <button
+                        onClick={() =>
+                          setSelectedItems({ items: entry.items, proof: entry.proof_of_payment })
+                        }
+                        className="text-sm text-white bg-blue-800 hover:bg-blue-900 px-3 py-1 rounded"
+                      >
+                        Lihat Item
+                      </button>
 
-                    <div>
-                      <span className="font-semibold">Total:</span>{' '}
-                      Rp {entry.total_price.toLocaleString()}
+                      {paymentStatus === 'failed' && (
+                        <button
+                          onClick={() => navigate(`/payment/retry/${entry.order_id}`)}
+                          className="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded"
+                        >
+                          Bayar Ulang
+                        </button>
+                      )}
+
+                      {orderStatus === 'pending' && (
+                        <button
+                          onClick={() => navigate(`/payment/${entry.order_id}`)}
+                          className="text-sm text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded"
+                        >
+                          Selesaikan Pembayaran
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-2 mt-2 md:mt-0">
-                    <button
-                      onClick={() =>
-                        setSelectedItems({ items: entry.items, proof: entry.proof_of_payment })
-                      }
-                      className="text-sm text-white bg-blue-800 hover:bg-blue-900 px-3 py-1 rounded"
-                    >
-                      Lihat Item
-                    </button>
-
-                    {entry.payment_status === 'failed' && (
-                      <button
-                        onClick={() => navigate(`/payment/retry/${entry.order_id}`)}
-                        className="text-sm text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded"
-                      >
-                        Bayar Ulang
-                      </button>
-                    )}
-
-                    {entry.order_status === 'pending' && (
-                      <button
-                        onClick={() => navigate(`/payment/${entry.order_id}`)}
-                        className="text-sm text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded"
-                      >
-                        Selesaikan Pembayaran
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
           </div>
         )}
 
