@@ -1,8 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-const app = express();
 const path = require('path');
 require('dotenv').config();
+
+const app = express();
 
 const productRouter = require('./routes/productRoutes');
 const authRouter = require('./routes/authRoutes');
@@ -17,9 +18,6 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Tambahkan middleware logging untuk cek origin header masuk
 app.use((req, res, next) => {
   console.log('Request Origin:', req.headers.origin);
   next();
@@ -31,10 +29,8 @@ const allowedOrigins = [
   'http://localhost:5173',
 ];
 
-// Opsi CORS untuk produksi (spesifik origin)
 const corsOptions = {
   origin: function (origin, callback) {
-    // Jika request dari tools seperti Postman yang tidak ada origin, izinkan juga
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -45,14 +41,8 @@ const corsOptions = {
   credentials: true,
 };
 
-// -- UNTUK TESTING --
-// Jika ingin test sementara tanpa CORS error, bisa pakai ini:
-// app.use(cors({ origin: '*', credentials: false }));
-
-// Gunakan corsOptions di sini:
 app.use(cors(corsOptions));
 
-// Router
 app.use('/api', productRouter);
 app.use('/api', authRouter);
 app.use('/api', profileRoutes);

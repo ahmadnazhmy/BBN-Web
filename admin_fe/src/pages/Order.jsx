@@ -297,7 +297,7 @@ export default function Order() {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg md:text-xl font-semibold">Detail Item Pesanan #{selectedOrder.order_id}</h3>
               <button onClick={closeModal} className="text-gray-500 hover:text-gray-800">
-                <FontAwesomeIcon icon={faXmark} />
+                <FontAwesomeIcon icon={faXmark} className='m-4 text-lg md:text-2xl'/>
               </button>
             </div>
             <ul className="list-disc list-inside space-y-2 text-sm md:text-base max-h-[60vh] overflow-y-auto">

@@ -241,8 +241,7 @@ function Payment() {
                   <td className="px-4 py-3 border-b border-gray-300">
                     {p.proof_of_payment ? (
                       <a
-                        href={`https://bbn-web-production.up.railway.app${p.proof_of_payment}`}
-                        target="_blank"
+                        href={p.proof_of_payment} 
                         rel="noopener noreferrer"
                         className="text-white"
                       >

@@ -10,7 +10,7 @@ const uploadProof = async (req, res) => {
     return res.status(400).json({ error: 'Bukti pembayaran tidak ditemukan' });
   }
 
-  const filePath = `/uploads/payments/${file.filename}`;
+  const filePath = file.path;  
 
   try {
     const conn = await db.getConnection();
@@ -50,6 +50,7 @@ const uploadProof = async (req, res) => {
     res.status(500).json({ error: 'Gagal upload bukti pembayaran' });
   }
 };
+
 
 const getAllPayments = async (req, res) => {
   try {
@@ -189,6 +190,12 @@ const updatePaymentMessage = async (req, res) => {
       SELECT user_id, order_id FROM payment WHERE payment_id = ?
     `, [paymentId]);
 
+    if (!paymentRow) {
+      await conn.rollback();
+      conn.release();
+      return res.status(404).json({ error: 'Pembayaran tidak ditemukan saat ambil data user dan order' });
+    }
+
     const notifMessage =
       `Admin menambahkan pesan pada pembayaran Pesanan #${paymentRow.order_id}: "${message}"`;
 
@@ -209,7 +216,8 @@ const updatePaymentMessage = async (req, res) => {
   }
 };
 
-module.exports = {
+
+module.exports = { 
   uploadProof,
   getAllPayments,
   updatePaymentStatus,

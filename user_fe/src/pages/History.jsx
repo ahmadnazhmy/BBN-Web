@@ -184,24 +184,24 @@ function History() {
               </ul>
 
               {selectedItems.proof && (
-                <div className="mt-6">
-                  <a
-                    href={`https://bbn-web-production.up.railway.app${selectedItems.proof}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block bg-blue-800 text-white px-4 py-2 rounded-xs hover:bg-blue-900 text-sm text-center"
-                  >
-                    Lihat Bukti Pembayaran
-                  </a>
-                </div>
-              )}
+                  <div className="mt-6">
+                    <a
+                      href={selectedItems.proof}  
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block bg-blue-800 text-white px-4 py-2 rounded-xs hover:bg-blue-900 text-sm text-center"
+                    >
+                      Lihat Bukti Pembayaran
+                    </a>
+                  </div>
+                )}
 
               <button
                 onClick={() => setSelectedItems(null)}
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
                 aria-label="Close modal"
               >
-                <FontAwesomeIcon icon={faXmark} />
+                <FontAwesomeIcon icon={faXmark} className='m-4 text-lg md:text-2xl'/>
               </button>
             </div>
           </div>

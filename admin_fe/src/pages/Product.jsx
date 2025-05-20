@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faPen, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faPen, faTrash, faEye } from '@fortawesome/free-solid-svg-icons';
 
 function Product() {
   const [products, setProducts] = useState([]);
@@ -187,7 +187,7 @@ function Product() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => openModal(product)}
-                        className="text-white text-xs w-8 h-8 rounded-xs bg-blue-800 hover:bg-blue-900 transition-colors"
+                        className="text-white text-xs w-8 h-8 rounded-xs bg-green-700 hover:bg-green-800 transition-colors"
                       >
                         <FontAwesomeIcon icon={faPen} />
                       </button>
@@ -199,10 +199,10 @@ function Product() {
                       </button>
                       <button
                         onClick={() => openStockHistory(product)}
-                        className="text-white text-xs w-8 h-8 rounded-xs bg-green-700 hover:bg-green-800 transition-colors"
+                        className="text-white text-xs w-8 h-8 rounded-xs bg-blue-800 hover:bg-blue-900 transition-colors"
                         title="Riwayat Stok"
                       >
-                        📜
+                        <FontAwesomeIcon icon={faEye} />
                       </button>
                     </div>
                   </td>
