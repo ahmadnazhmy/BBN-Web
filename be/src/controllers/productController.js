@@ -1,5 +1,14 @@
 const db = require('../config/db');
 
+function getJakartaDateTime() {
+  const now = new Date();
+  const offset = 7 * 60 * 60 * 1000; // +7 jam
+  return new Date(now.getTime() + offset)
+    .toISOString()
+    .slice(0, 19)
+    .replace('T', ' ');
+}
+
 const getAllProducts = async (req, res) => {
   const { product_name } = req.query;
   let query = 'SELECT * FROM product WHERE 1';
@@ -50,9 +59,11 @@ const addProduct = async (req, res) => {
     const productId = result.insertId;
 
     if (stock && parseInt(stock) > 0) {
+      const formattedDate = getJakartaDateTime();
+
       await db.execute(
-        `INSERT INTO stock_history (product_id, quantity, type) VALUES (?, ?, 'in')`,
-        [productId, stock]
+        `INSERT INTO stock_history (product_id, quantity, type, date) VALUES (?, ?, 'in', ?)`,
+        [productId, stock, formattedDate]
       );
     }
 
@@ -87,12 +98,15 @@ const updateProduct = async (req, res) => {
       [product_name, type || null, thick || null, avg_weight_per_stick || null, unit_price, stock, id]
     );
     if (!result.affectedRows) return res.status(404).json({ error: 'Produk tidak ditemukan' });
+
     if (!isNaN(oldStock) && !isNaN(newStock) && oldStock !== newStock) {
       const diff = newStock - oldStock;
       const type = diff > 0 ? 'in' : 'out';
+      const date = getJakartaDateTime();
+
       await db.execute(
-        `INSERT INTO stock_history (product_id, quantity, type) VALUES (?, ?, ?)`,
-        [id, Math.abs(diff), type]
+        `INSERT INTO stock_history (product_id, quantity, type, date) VALUES (?, ?, ?, ?)`,
+        [id, Math.abs(diff), type, date]
       );
     }
 
@@ -137,5 +151,5 @@ module.exports = {
   addProduct,
   updateProduct,
   deleteProduct,
-  getStockHistoryByProduct,   
+  getStockHistoryByProduct,
 };

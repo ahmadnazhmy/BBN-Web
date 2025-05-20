@@ -1,5 +1,14 @@
 const db = require('../config/db');
 
+function getJakartaDateTime() {
+  const now = new Date();
+  const offset = 7 * 60 * 60 * 1000; // +7 jam
+  return new Date(now.getTime() + offset)
+    .toISOString()
+    .slice(0, 19)
+    .replace('T', ' ');
+}
+
 const uploadProof = async (req, res) => {
   const user_id = req.user.id;
   const order_id = req.body.order_id;
@@ -39,11 +48,11 @@ const uploadProof = async (req, res) => {
     } else {
       await conn.execute(`
         INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment, created_at)
-        VALUES (?, ?, ?, 'pending', ?, NOW())
-      `, [order_id, user_id, amount, filePath]);
+        VALUES (?, ?, ?, 'pending', ?, ?)
+      `, [order_id, user_id, amount, filePath, getJakartaDateTime()]);
     }
 
-    // Update status order menjadi 'pending'
+
     await conn.execute(`
       UPDATE \`order\` SET status = 'pending' WHERE order_id = ?
     `, [order_id]);
@@ -106,9 +115,9 @@ const updatePaymentStatus = async (req, res) => {
     if (status === 'completed') {
       await conn.execute(`
         UPDATE payment 
-        SET status = ?, message = NULL, verified_at = NOW()
+        SET status = ?, message = NULL, verified_at = ?
         WHERE payment_id = ?
-      `, [status, paymentId]);
+      `, [status, getJakartaDateTime(), paymentId]);
 
       const [[paymentRow]] = await conn.execute(
         `SELECT order_id FROM payment WHERE payment_id = ?`,
@@ -162,8 +171,8 @@ const updatePaymentStatus = async (req, res) => {
 
     await conn.execute(
       `INSERT INTO notification (user_id, order_id, message, is_read, created_at)
-       VALUES (?, ?, ?, FALSE, NOW())`,
-      [paymentRowUser.user_id, paymentRowUser.order_id, notifMessage]
+       VALUES (?, ?, ?, FALSE, ?)`,
+      [paymentRowUser.user_id, paymentRowUser.order_id, notifMessage, getJakartaDateTime()]
     );
 
     await conn.commit();
@@ -217,8 +226,8 @@ const updatePaymentMessage = async (req, res) => {
 
     await conn.execute(`
       INSERT INTO notification (user_id, order_id, message, is_read, created_at)
-      VALUES (?, ?, ?, FALSE, NOW())
-    `, [paymentRow.user_id, paymentRow.order_id, notifMessage]);
+      VALUES (?, ?, ?, FALSE, ?)
+    `, [paymentRow.user_id, paymentRow.order_id, notifMessage, getJakartaDateTime()]);
 
     await conn.commit();
     conn.release();

@@ -2,6 +2,15 @@ const db = require('../config/db')
 const path = require('path')
 const fs = require('fs')
 
+function getJakartaDateTime() {
+  const now = new Date();
+  const offset = 7 * 60 * 60 * 1000; 
+  return new Date(now.getTime() + offset)
+    .toISOString()
+    .slice(0, 19)
+    .replace('T', ' ');
+}
+
 const checkout = async (req, res) => {
   const { method, location, cart } = req.body
   const user_id = req.user.id
@@ -29,10 +38,12 @@ const checkout = async (req, res) => {
       }
     }
 
+    const orderDateTime = getJakartaDateTime()
+
     const [orderResult] = await conn.execute(
       `INSERT INTO \`order\` (user_id, order_date, status, total_price, method, location)
-       VALUES (?, NOW(), 'unpaid', ?, ?, ?)`,
-      [user_id, total_price, method, location]
+       VALUES (?, ?, 'unpaid', ?, ?, ?)`,
+      [user_id, orderDateTime, total_price, method, location]
     )
     const order_id = orderResult.insertId
 
@@ -52,6 +63,7 @@ const checkout = async (req, res) => {
       await conn.execute(
         `INSERT INTO order_item (order_id, product_id, quantity, subtotal)
          VALUES (?, ?, ?, ?)`,
+
         [order_id, item.product_id, item.quantity, subtotal]
       )
     }

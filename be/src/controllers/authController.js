@@ -6,6 +6,15 @@ require('dotenv').config();
 
 const SECRET_KEY = process.env.ENCRYPTION_SECRET || 'default_32_char_secret_key';
 
+function getJakartaDateTime() {
+  const now = new Date();
+  const offset = 7 * 60 * 60 * 1000; 
+  return new Date(now.getTime() + offset)
+    .toISOString()
+    .slice(0, 19)
+    .replace('T', ' ');
+}
+
 const decryptData = (encrypted) => {
   try {
     const bytes = CryptoJS.AES.decrypt(encrypted, SECRET_KEY);
@@ -27,8 +36,13 @@ const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const query = 'INSERT INTO user (shop_name, email, phone, address, password_hash) VALUES (?, ?, ?, ?, ?)';
-    const values = [shop_name, email, phone, address, hashedPassword];
+    const createdAt = getJakartaDateTime();
+
+    const query = `
+      INSERT INTO user (shop_name, email, phone, address, password_hash, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    const values = [shop_name, email, phone, address, hashedPassword, createdAt];
 
     await db.query(query, values);
     res.status(201).json({ message: 'Pengguna berhasil terdaftar' });
@@ -84,8 +98,13 @@ const registerAdmin = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const query = 'INSERT INTO admin (username, password_hash) VALUES (?, ?)';
-    const values = [username, hashedPassword];
+    const createdAt = getJakartaDateTime();
+
+    const query = `
+      INSERT INTO admin (username, password_hash, created_at)
+      VALUES (?, ?, ?)
+    `;
+    const values = [username, hashedPassword, createdAt];
 
     await db.query(query, values);
 
