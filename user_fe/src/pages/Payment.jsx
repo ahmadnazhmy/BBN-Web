@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 function Payment() {
-  const { orderId } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const [order, setOrder] = useState(null)
   const [file, setFile] = useState(null)
   const [amount, setAmount] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [successMessage, setSuccessMessage] = useState(null)
   const token = localStorage.getItem('token')
+
+  const queryParams = new URLSearchParams(location.search)
+  const orderId = queryParams.get('order_id')
+  const paymentSuccess = queryParams.get('payment_success') === 'true'
 
   useEffect(() => {
     if (!token) {
@@ -15,7 +22,18 @@ function Payment() {
       return
     }
 
+    if (paymentSuccess) {
+      setSuccessMessage('Pembayaran berhasil! Terima kasih.')
+    }
+
+    if (!orderId) {
+      setError('Order ID tidak ditemukan di URL.')
+      return
+    }
+
     const fetchOrder = async () => {
+      setLoading(true)
+      setError(null)
       try {
         const res = await fetch(`https://bbn-web-production.up.railway.app/api/order/${orderId}`, {
           headers: {
@@ -32,14 +50,14 @@ function Payment() {
         setOrder(data)
         setAmount(data.total_price)
       } catch (err) {
-        console.error('Gagal ambil data order:', err)
+        setError('Gagal ambil data order: ' + err.message)
+      } finally {
+        setLoading(false)
       }
     }
 
-    if (orderId) {
-      fetchOrder()
-    }
-  }, [orderId, token, navigate])
+    fetchOrder()
+  }, [orderId, token, navigate, paymentSuccess])
 
   const handleUpload = async (e) => {
     e.preventDefault()
@@ -72,7 +90,6 @@ function Payment() {
       alert('Bukti pembayaran berhasil diunggah!')
       navigate('/')
     } catch (err) {
-      console.error('Upload error:', err)
       alert(err.message || 'Gagal mengunggah bukti pembayaran')
     }
   }
@@ -94,18 +111,38 @@ function Payment() {
       alert('Pembayaran berhasil dibatalkan')
       navigate('/')
     } catch (err) {
-      console.error('Cancel error:', err)
       alert(err.message || 'Terjadi kesalahan saat membatalkan')
     }
   }
 
-  if (!order) return <div className="p-6">Memuat data order...</div>
+  if (loading) return <div className="p-6">Memuat data order...</div>
+  if (error) return <div className="p-6 text-red-600">{error}</div>
+  if (!order) return null
+
+  const formatDate = (dateStr) => {
+    try {
+      return new Date(dateStr).toLocaleString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch {
+      return dateStr
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
       <div className="flex flex-col md:flex-row gap-6 w-full max-w-5xl bg-white border border-gray-300 shadow-md rounded-xs p-6">
         <div className="w-full md:w-2/3 space-y-4">
           <h2 className="text-2xl font-bold text-center md:text-left">Pembayaran</h2>
+
+          {successMessage && (
+            <div className="p-3 mb-4 bg-green-200 text-green-800 rounded">{successMessage}</div>
+          )}
+
           <table className="w-full">
             <tbody>
               <tr>
@@ -114,7 +151,7 @@ function Payment() {
               </tr>
               <tr>
                 <td className="font-bold align-top pr-4">Tanggal</td>
-                <td className="align-top">{new Date(order.order_date).toLocaleString()}</td>
+                <td className="align-top">{formatDate(order.order_date)}</td>
               </tr>
             </tbody>
           </table>
@@ -161,7 +198,7 @@ function Payment() {
 
         <div className="w-full md:w-1/3 border-t md:border-t-0 md:border-l border-gray-200 pl-0 md:pl-6 pt-4 md:pt-0">
           <p className="font-bold mb-3">Daftar Barang</p>
-          <ul className="space-y-2">
+          <ul className="space-y-2 max-h-[50vh] overflow-y-auto">
             {order.items?.map((item, index) => (
               <li
                 key={`${item.product_id}-${index}`}
