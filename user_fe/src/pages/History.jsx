@@ -55,7 +55,7 @@ function History() {
     }
   }, [token, navigate]);
 
-  const translateOrderStatus = (status) => {
+  const translateOrderStatus = (status = '') => {
     switch (status.toLowerCase()) {
       case 'pending':
         return 'Belum Bayar';
@@ -74,8 +74,8 @@ function History() {
     }
   };
 
-  const translatePaymentStatus = (status) => {
-    switch ((status || '').toLowerCase()) {
+  const translatePaymentStatus = (status = '') => {
+    switch (status.toLowerCase()) {
       case 'pending':
         return 'Sedang Verifikasi';
       case 'completed':
@@ -105,8 +105,8 @@ function History() {
             {history
               .filter(
                 (entry) =>
-                  entry.payment_status !== 'Belum Bayar' &&
-                  entry.order_status.toLowerCase() !== 'cancel'
+                  (entry.payment_status || '') !== 'Belum Bayar' &&
+                  (entry.order_status || '').toLowerCase() !== 'cancel'
               )
               .map((entry) => (
                 <div
@@ -125,7 +125,7 @@ function History() {
                         : '-'}
                     </div>
 
-                    {entry.payment_status.toLowerCase() !== 'pending' && (
+                    {(entry.payment_status || '').toLowerCase() !== 'pending' && (
                       <div>
                         <span className="font-semibold">Status Pesanan:</span>{' '}
                         {translateOrderStatus(entry.order_status)}
