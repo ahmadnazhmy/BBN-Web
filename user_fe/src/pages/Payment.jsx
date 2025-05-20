@@ -9,21 +9,16 @@ function Payment() {
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [successMessage, setSuccessMessage] = useState(null)
+  const [loadingUpload, setLoadingUpload] = useState(false)
   const token = localStorage.getItem('token')
 
   const queryParams = new URLSearchParams(location.search)
   const orderId = queryParams.get('order_id')
-  const paymentSuccess = queryParams.get('payment_success') === 'true'
 
   useEffect(() => {
     if (!token) {
       navigate('/login')
       return
-    }
-
-    if (paymentSuccess) {
-      setSuccessMessage('Pembayaran berhasil! Terima kasih.')
     }
 
     if (!orderId) {
@@ -57,7 +52,7 @@ function Payment() {
     }
 
     fetchOrder()
-  }, [orderId, token, navigate, paymentSuccess])
+  }, [orderId, token, navigate])
 
   const handleUpload = async (e) => {
     e.preventDefault()
@@ -76,6 +71,7 @@ function Payment() {
     formData.append('order_id', orderId)
     formData.append('amount', amount)
 
+    setLoadingUpload(true)
     try {
       const res = await fetch('https://bbn-web-production.up.railway.app/api/upload-proof', {
         method: 'POST',
@@ -91,6 +87,8 @@ function Payment() {
       navigate('/')
     } catch (err) {
       alert(err.message || 'Gagal mengunggah bukti pembayaran')
+    } finally {
+      setLoadingUpload(false)
     }
   }
 
@@ -182,9 +180,10 @@ function Payment() {
 
               <button
                 type="submit"
-                className="w-full bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-xs"
+                className="w-full bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-xs disabled:opacity-50"
+                disabled={loadingUpload}
               >
-                Upload Bukti Pembayaran
+                {loadingUpload ? 'Memuat...' : 'Upload Bukti Pembayaran'}
               </button>
               <p
                 onClick={handleCancelPayment}

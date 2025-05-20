@@ -187,7 +187,7 @@ function Payment() {
                       <select
                         value={p.status}
                         onChange={e => updateStatus(p.payment_id, e.target.value)}
-                        className="bg-white border border-gray-300 rounded-xs px-4 py-2 pr-8 text-sm md:text-base appearance-none w-full"
+                        className="bg-white border border-gray-300 rounded-xs px-4 py-2 pr-8 text-sm appearance-none w-full"
                       >
                         <option value="pending">Verifikasi</option>
                         <option value="completed">Berhasil</option>
