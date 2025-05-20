@@ -101,7 +101,7 @@ const Product = () => {
                 className="border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
               >
                 <div className="flex-1">
-                  <h2 className="font-bold text-lg">
+                  <h2 className="font-bold text-base md:text-lg">
                     {p.product_name} {p.type}, Tebal {p.thick}, {p.avg_weight_per_stick} Kg
                   </h2>
                   {isLoggedIn && (

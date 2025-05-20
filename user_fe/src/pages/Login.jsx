@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 import CryptoJS from 'crypto-js';
@@ -10,7 +10,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const secretKey = 'your_super_secret_key_32char'; 
+  const secretKey = 'your_super_secret_key_32char';
 
   const encryptData = (data) => {
     return CryptoJS.AES.encrypt(JSON.stringify(data), secretKey).toString();
@@ -96,6 +96,13 @@ function Login() {
             {loading ? 'Memproses...' : 'Login'}
           </button>
         </form>
+
+        <div className="mt-4 text-center text-sm text-gray-600">
+          Belum punya akun?{' '}
+          <Link to="/register" className="text-blue-800 hover:underline font-medium">
+            Daftar di sini
+          </Link>
+        </div>
       </div>
     </div>
   );
