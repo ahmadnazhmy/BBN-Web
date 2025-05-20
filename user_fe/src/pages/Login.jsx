@@ -96,13 +96,12 @@ function Login() {
             {loading ? 'Memproses...' : 'Login'}
           </button>
         </form>
-
-        <div className="mt-4 text-center text-sm text-gray-600">
-          Belum punya akun?{' '}
-          <Link to="/register" className="text-blue-800 hover:underline font-medium">
-            Daftar di sini
-          </Link>
-        </div>
+        <p className="text-center mt-4">
+            Belum punya akun?{' '}
+            <Link to="register" className="text-blue-600 hover:text-blue-800">
+              Klik daftar
+            </Link>
+        </p>
       </div>
     </div>
   );

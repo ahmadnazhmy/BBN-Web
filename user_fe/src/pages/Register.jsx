@@ -115,6 +115,12 @@ function Register() {
             Daftar
           </button>
         </form>
+        <p className="text-center mt-4">
+          Sudah punya akun?{' '}
+          <Link to="/login" className="text-blue-600 hover:text-blue-800">
+            Klik login
+          </Link>
+        </p>
       </div>
     </div>
   );

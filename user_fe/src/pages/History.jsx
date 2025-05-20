@@ -55,13 +55,19 @@ function History() {
       case 'delivered': return 'Sudah Diterima';
       case 'picked_up': return 'Sudah Diambil';
       case 'cancel': return 'Dibatalkan';
-      default: return status;
+      default: return status || '-';
     }
   };
 
-  const translatePaymentStatus = (status) => {
-    switch ((status || '').toLowerCase()) {
-      case 'pending': return 'Sedang Verifikasi';
+  const translatePaymentStatus = (paymentStatus, orderStatus) => {
+    const payment = (paymentStatus || '').toLowerCase();
+    const order = (orderStatus || '').toLowerCase();
+
+    if (payment === 'pending') {
+      return order === 'pending' ? 'Belum Bayar' : 'Sedang Verifikasi';
+    }
+
+    switch (payment) {
       case 'completed': return 'Pembayaran Berhasil';
       case 'failed': return 'Pembayaran Gagal';
       default: return 'Belum Bayar';
@@ -111,7 +117,7 @@ function History() {
 
                     <div>
                       <span className="font-semibold">Status Pembayaran:</span>{' '}
-                      {translatePaymentStatus(entry.payment_status)}
+                      {translatePaymentStatus(entry.payment_status, entry.order_status)}
                     </div>
 
                     <div>
