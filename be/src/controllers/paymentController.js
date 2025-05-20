@@ -43,6 +43,11 @@ const uploadProof = async (req, res) => {
       `, [order_id, user_id, amount, filePath]);
     }
 
+    // Update status order menjadi 'pending'
+    await conn.execute(`
+      UPDATE \`order\` SET status = 'pending' WHERE order_id = ?
+    `, [order_id]);
+
     conn.release();
     res.status(201).json({ message: 'Bukti pembayaran berhasil diupload' });
   } catch (error) {
@@ -50,7 +55,6 @@ const uploadProof = async (req, res) => {
     res.status(500).json({ error: 'Gagal upload bukti pembayaran' });
   }
 };
-
 
 const getAllPayments = async (req, res) => {
   try {
@@ -100,21 +104,18 @@ const updatePaymentStatus = async (req, res) => {
     await conn.beginTransaction();
 
     if (status === 'completed') {
-      // Update payment status dan verified_at
       await conn.execute(`
         UPDATE payment 
         SET status = ?, message = NULL, verified_at = NOW()
         WHERE payment_id = ?
       `, [status, paymentId]);
 
-      // Ambil order_id terkait payment
       const [[paymentRow]] = await conn.execute(
         `SELECT order_id FROM payment WHERE payment_id = ?`,
         [paymentId]
       );
 
       if (paymentRow) {
-        // Update status order jadi 'processing' (enum valid)
         await conn.execute(`
           UPDATE \`order\` SET status = 'processing' WHERE order_id = ?
         `, [paymentRow.order_id]);
@@ -126,9 +127,20 @@ const updatePaymentStatus = async (req, res) => {
         SET status = ?, verified_at = NULL
         WHERE payment_id = ?
       `, [status, paymentId]);
+
+      const [[paymentRow]] = await conn.execute(
+        `SELECT order_id FROM payment WHERE payment_id = ?`,
+        [paymentId]
+      );
+
+      if (paymentRow) {
+        const newOrderStatus = (status === 'pending') ? 'pending' : 'unpaid';
+        await conn.execute(`
+          UPDATE \`order\` SET status = ? WHERE order_id = ?
+        `, [newOrderStatus, paymentRow.order_id]);
+      }
     }
 
-    // Ambil user_id dan order_id untuk buat notifikasi
     const [[paymentRowUser]] = await conn.execute(
       `SELECT user_id, order_id FROM payment WHERE payment_id = ?`,
       [paymentId]
@@ -170,12 +182,7 @@ const updatePaymentMessage = async (req, res) => {
   const paymentId = req.params.id;
   const { message } = req.body;
 
-  console.log('Update payment message called');
-  console.log('paymentId:', paymentId);
-  console.log('message:', message);
-
   if (!message || typeof message !== 'string') {
-    console.log('Invalid message');
     return res.status(400).json({ error: 'Pesan tidak valid' });
   }
 
@@ -183,40 +190,31 @@ const updatePaymentMessage = async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    // Update message di tabel payment
     const [updateResult] = await conn.execute(`
       UPDATE payment
       SET message = ?
       WHERE payment_id = ?
     `, [message, paymentId]);
 
-    console.log('Update result:', updateResult);
-
     if (updateResult.affectedRows === 0) {
       await conn.rollback();
       conn.release();
-      console.log('Payment ID not found for update');
       return res.status(404).json({ error: 'Pembayaran tidak ditemukan' });
     }
 
-    // Ambil user_id dan order_id dari payment
     const [[paymentRow]] = await conn.execute(`
       SELECT user_id, order_id FROM payment WHERE payment_id = ?
     `, [paymentId]);
 
-    console.log('Payment row:', paymentRow);
-
     if (!paymentRow) {
       await conn.rollback();
       conn.release();
-      console.log('Payment not found after update');
       return res.status(404).json({ error: 'Pembayaran tidak ditemukan saat ambil data user dan order' });
     }
 
     const notifMessage =
       `Admin menambahkan pesan pada pembayaran Pesanan #${paymentRow.order_id}: "${message}"`;
 
-    // Insert notifikasi dengan order_id juga
     await conn.execute(`
       INSERT INTO notification (user_id, order_id, message, is_read, created_at)
       VALUES (?, ?, ?, FALSE, NOW())

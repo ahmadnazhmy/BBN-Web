@@ -65,7 +65,7 @@ function User() {
 
       <div className="overflow-hidden bg-white rounded-xs">
         <div className="max-h-[85vh] overflow-y-auto">
-        <table className="min-w-full table-fixed">
+        <table className="min-w-full table-fixed text-sm">
           <thead className="bg-gray-100 sticky top-0 z-10">
             <tr>
               <th className="w-12 px-4 py-3 border-b border-gray-300 text-left">No</th>

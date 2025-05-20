@@ -190,7 +190,7 @@ export default function Order() {
 
       <div className="overflow-hidden bg-white rounded-xs">
         <div className="max-h-[85vh] overflow-y-auto">
-          <table className="w-full">
+          <table className="w-full text-sm">
             <thead className="bg-gray-100 sticky top-0 z-10">
               <tr>
                 {['No', 'ID', 'Nama Toko', 'Tanggal', 'Status', 'Total', 'Metode', 'Lokasi', 'Detail']

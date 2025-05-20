@@ -31,7 +31,7 @@ const checkout = async (req, res) => {
 
     const [orderResult] = await conn.execute(
       `INSERT INTO \`order\` (user_id, order_date, status, total_price, method, location)
-       VALUES (?, NOW(), 'pending', ?, ?, ?)`,
+       VALUES (?, NOW(), 'unpaid', ?, ?, ?)`,
       [user_id, total_price, method, location]
     )
     const order_id = orderResult.insertId
@@ -75,14 +75,27 @@ const createPayment = async (req, res) => {
 
   if (!proof) return res.status(400).json({ error: 'Bukti pembayaran wajib diupload' })
 
+  const conn = await db.getConnection()
   try {
-    await db.execute(
+    await conn.beginTransaction()
+
+    await conn.execute(
       `INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment, created_at)
        VALUES (?, ?, ?, 'pending', ?, NOW())`,
       [order_id, user_id, amount, proof]
     )
+
+    await conn.execute(
+      `UPDATE \`order\` SET status = 'pending' WHERE order_id = ? AND user_id = ?`,
+      [order_id, user_id]
+    )
+
+    await conn.commit()
+    conn.release()
     res.status(201).json({ message: 'Bukti pembayaran berhasil dikirim' })
   } catch (err) {
+    await conn.rollback()
+    conn.release()
     console.error(err)
     res.status(500).json({ error: 'Gagal menyimpan pembayaran' })
   }
@@ -252,7 +265,6 @@ const cancelPayment = async (req, res) => {
     res.status(500).json({ error: 'Gagal membatalkan pesanan' })
   }
 }
-
 
 const confirmDelivery = async (req, res) => {
   const userId = req.user?.id;

@@ -49,7 +49,8 @@ function History() {
 
   const translateOrderStatus = (status) => {
     switch ((status || '').toLowerCase()) {
-      case 'pending': return 'Belum Bayar';
+      case 'unpaid': return 'Belum Bayar';
+      case 'pending': return 'Sedang Verifikasi';
       case 'processing': return 'Sedang Dikemas';
       case 'shipped': return 'Sedang Diantar';
       case 'delivered': return 'Sudah Diterima';
@@ -63,8 +64,11 @@ function History() {
     const payment = (paymentStatus || '').toLowerCase();
     const order = (orderStatus || '').toLowerCase();
 
-    if (payment === 'pending') {
-      return order === 'pending' ? 'Belum Bayar' : 'Sedang Verifikasi';
+    if (order === 'unpaid') {
+      return 'Belum Bayar';
+    }
+    if (order === 'pending' && payment === 'pending') {
+      return 'Sedang Verifikasi';
     }
 
     switch (payment) {
@@ -75,7 +79,7 @@ function History() {
   };
 
   const shouldShowPaymentButton = (orderStatus, paymentStatus) => {
-    return orderStatus === 'pending' && (!paymentStatus || paymentStatus === 'null' || paymentStatus === '');
+    return orderStatus === 'unpaid';
   };
 
   if (loading) return <div className="p-6">Loading...</div>;
