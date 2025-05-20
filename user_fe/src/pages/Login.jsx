@@ -98,7 +98,7 @@ function Login() {
         </form>
         <p className="text-center mt-4">
             Belum punya akun?{' '}
-            <Link to="register" className="text-blue-600 hover:text-blue-800">
+            <Link to="/register" className="text-blue-600 hover:text-blue-800">
               Klik daftar
             </Link>
         </p>
