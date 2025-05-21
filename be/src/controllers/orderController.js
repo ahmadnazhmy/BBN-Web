@@ -245,8 +245,8 @@ const cancelPayment = async (req, res) => {
     await conn.beginTransaction()
 
     const [orders] = await conn.execute(
-      'SELECT * FROM `order` WHERE order_id = ? AND user_id = ? AND status = ?',
-      [orderId, userId, 'pending']
+      'SELECT * FROM `order` WHERE order_id = ? AND user_id = ? AND status IN (?, ?)',
+      [orderId, userId, 'pending', 'unpaid'] 
     )
     if (!orders.length) {
       await conn.rollback(); conn.release();
