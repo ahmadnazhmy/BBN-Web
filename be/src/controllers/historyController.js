@@ -6,18 +6,19 @@ const getUserHistory = async (req, res) => {
   try {
     const conn = await db.getConnection();
     const [orders] = await conn.execute(`
-      SELECT 
-        o.order_id, 
-        o.order_date, 
-        o.status AS order_status, 
-        o.total_price,
-        IFNULL(p.status, '') AS payment_status,
-        p.proof_of_payment
-      FROM \`order\` o
-      LEFT JOIN payment p ON o.order_id = p.order_id
-      WHERE o.user_id = ? AND (o.status = 'pending' OR p.status IS NOT NULL)
-      ORDER BY o.order_date DESC
-    `, [user_id]);
+    SELECT 
+      o.order_id, 
+      o.order_date, 
+      o.status AS order_status, 
+      o.total_price,
+      IFNULL(p.status, '') AS payment_status,
+      p.proof_of_payment
+    FROM \`order\` o
+    LEFT JOIN payment p ON o.order_id = p.order_id
+    WHERE o.user_id = ? AND o.status IN ('unpaid','pending','processing','shipped','delivered','picked_up')
+    ORDER BY o.order_date DESC
+  `, [user_id]);
+
 
     const ordersWithItems = await Promise.all(orders.map(async (order) => {
       const [items] = await conn.execute(`
