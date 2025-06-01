@@ -197,151 +197,162 @@ const getAllOrders = async (req, res) => {
 };
 
 const updateOrderStatus = async (req, res) => {
-  const orderId = req.params.orderId;
-  const { status } = req.body;
+    const orderId = req.params.orderId;
+    const { status } = req.body;
 
-  const allowedStatuses = [
-    'unpaid', 'pending_fullpayment', 'pending_dp', 'processing',
-    'ready', 'shipped', 'delivered', 'picked_up', 'cancel'
-  ];
+    const allowedStatuses = [
+        'unpaid', 'pending_fullpayment', 'pending_dp', 'processing',
+        'ready', 'shipped', 'delivered', 'picked_up', 'cancel'
+    ];
 
-  if (status === undefined || status === null) {
-    return res.status(400).json({ error: 'Parameter "status" tidak boleh kosong.' });
-  }
+    if (status === undefined || status === null) {
+        return res.status(400).json({ error: 'Parameter "status" tidak boleh kosong.' });
+    }
 
-  if (typeof status !== 'string' || status.trim().length === 0) {
-    return res.status(400).json({ error: 'Parameter "status" harus berupa teks yang valid.' });
-  }
+    if (typeof status !== 'string' || status.trim().length === 0) {
+        return res.status(400).json({ error: 'Parameter "status" harus berupa teks yang valid.' });
+    }
 
-  const trimmedStatus = status.trim();
+    const trimmedStatus = status.trim();
 
-  if (!allowedStatuses.includes(trimmedStatus)) {
-    return res.status(400).json({ error: `Status "${trimmedStatus}" tidak valid.` });
-  }
+    if (!allowedStatuses.includes(trimmedStatus)) {
+        return res.status(400).json({ error: `Status "${trimmedStatus}" tidak valid.` });
+    }
 
-  const allowedTransitions = {
-    unpaid: ['pending_dp', 'pending_fullpayment', 'cancel'],
-    pending_dp: ['processing', 'cancel'],
-    pending_fullpayment: ['processing', 'cancel'],
-    processing: ['ready', 'cancel'],
-    ready: ['shipped', 'picked_up', 'cancel'],
-    shipped: ['delivered'],
-    picked_up: [],
-    delivered: [],
-    cancel: []
-  };
-
-  const generateNotificationMessage = (orderId, oldStatus, newStatus) => {
-    const messages = {
-      shipped: `Pesanan Anda #${orderId} sedang diantar.`,
-      picked_up: `Pesanan Anda #${orderId} telah berhasil diambil.`,
-      ready: `Pesanan Anda #${orderId} siap untuk diambil.`,
-      delivered: `Pesanan Anda #${orderId} telah berhasil diantar.`,
-      cancel: `Pesanan Anda #${orderId} telah dibatalkan.`,
-      processing: `Pesanan Anda #${orderId} sedang diproses.`
+    const allowedTransitions = {
+        unpaid: ['pending_dp', 'pending_fullpayment', 'cancel'],
+        pending_dp: ['processing', 'cancel'],
+        pending_fullpayment: ['processing', 'cancel'],
+        processing: ['ready', 'cancel'],
+        ready: ['shipped', 'picked_up', 'cancel'],
+        shipped: ['delivered'],
+        picked_up: [],
+        delivered: [],
+        cancel: []
     };
 
-    return oldStatus !== newStatus ? messages[newStatus] || '' : '';
-  };
+    const generateNotificationMessage = (orderId, oldStatus, newStatus) => {
+        const messages = {
+            shipped: `Pesanan Anda #${orderId} sedang diantar.`,
+            picked_up: `Pesanan Anda #${orderId} telah berhasil diambil.`,
+            ready: `Pesanan Anda #${orderId} siap untuk diambil.`,
+            delivered: `Pesanan Anda #${orderId} telah berhasil diantar.`,
+            cancel: `Pesanan Anda #${orderId} telah dibatalkan.`,
+            processing: `Pesanan Anda #${orderId} sedang diproses.`
+        };
+        return oldStatus !== newStatus ? messages[newStatus] || '' : '';
+    };
 
-  const conn = await db.getConnection();
-  try {
-    await conn.beginTransaction();
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
 
-    const [orderRows] = await conn.execute(
-      'SELECT status, user_id FROM `order` WHERE order_id = ? FOR UPDATE',
-      [orderId]
-    );
-
-    if (orderRows.length === 0) {
-      await conn.rollback();
-      return res.status(404).json({ error: 'Order tidak ditemukan.' });
-    }
-
-    const currentStatus = orderRows[0].status;
-    const userId = orderRows[0].user_id ?? null;
-
-    if (['delivered', 'picked_up', 'cancel'].includes(currentStatus)) {
-      await conn.rollback();
-      return res.status(400).json({ error: 'Status pesanan sudah final dan tidak dapat diubah.' });
-    }
-
-    const validNextStatuses = allowedTransitions[currentStatus] || [];
-    if (!validNextStatuses.includes(trimmedStatus)) {
-      await conn.rollback();
-      return res.status(400).json({
-        error: `Transisi status dari '${currentStatus}' ke '${trimmedStatus}' tidak diperbolehkan.`
-      });
-    }
-
-    if ((trimmedStatus === 'shipped' && currentStatus !== 'shipped') || (trimmedStatus === 'picked_up' && currentStatus !== 'picked_up')) {
-      const [orderItems] = await conn.execute(
-        'SELECT product_id, quantity FROM order_item WHERE order_id = ?',
-        [orderId]
-      );
-
-      if (orderItems.length === 0) {
-        await conn.rollback();
-        return res.status(400).json({ error: 'Tidak ada item dalam pesanan ini.' });
-      }
-
-      for (const item of orderItems) {
-        if (item.product_id === undefined || item.quantity === undefined) {
-          await conn.rollback();
-          return res.status(400).json({
-            error: `Data item pesanan tidak lengkap: ${JSON.stringify(item)}`
-          });
-        }
-
-        const [stockRows] = await conn.execute(
-          'SELECT SUM(quantity_change) AS current_stock FROM stock_history WHERE product_id = ? FOR UPDATE',
-          [item.product_id]
+        const [orderRows] = await conn.execute(
+            'SELECT status, user_id FROM `order` WHERE order_id = ? FOR UPDATE',
+            [orderId]
         );
 
-        const currentStock = stockRows[0].current_stock || 0;
-
-        if (currentStock < item.quantity) {
-          await conn.rollback();
-          return res.status(400).json({
-            error: `Stok tidak cukup untuk produk ID ${item.product_id}. Stok saat ini: ${currentStock}, Dibutuhkan: ${item.quantity}. Harap update stok terlebih dahulu.`
-          });
+        if (orderRows.length === 0) {
+            await conn.rollback();
+            return res.status(404).json({ error: 'Order tidak ditemukan.' });
         }
-      }
 
-      for (const item of orderItems) {
+        const currentStatus = orderRows[0].status;
+        const userId = orderRows[0].user_id ?? null;
+
+        if (['delivered', 'picked_up', 'cancel'].includes(currentStatus)) {
+            await conn.rollback();
+            return res.status(400).json({ error: 'Status pesanan sudah final dan tidak dapat diubah.' });
+        }
+
+        const validNextStatuses = allowedTransitions[currentStatus] || [];
+        if (!validNextStatuses.includes(trimmedStatus)) {
+            await conn.rollback();
+            return res.status(400).json({
+                error: `Transisi status dari '${currentStatus}' ke '${trimmedStatus}' tidak diperbolehkan.`
+            });
+        }
+
+        const statusesRequiringPayment = ['ready', 'shipped', 'picked_up', 'delivered'];
+
+        if (statusesRequiringPayment.includes(trimmedStatus)) {
+            const paymentStatus = await getPaymentStatus(conn, orderId); 
+            if (paymentStatus === 'Belum Lunas') {
+                await conn.rollback();
+                return res.status(400).json({
+                    error: `Status '${trimmedStatus}' tidak dapat diatur karena pesanan belum lunas.`
+                });
+            }
+        }
+
+        if ((trimmedStatus === 'shipped' && currentStatus !== 'shipped') || (trimmedStatus === 'picked_up' && currentStatus !== 'picked_up')) {
+            const [orderItems] = await conn.execute(
+                'SELECT product_id, quantity FROM order_item WHERE order_id = ?',
+                [orderId]
+            );
+
+            if (orderItems.length === 0) {
+                await conn.rollback();
+                return res.status(400).json({ error: 'Tidak ada item dalam pesanan ini.' });
+            }
+
+            for (const item of orderItems) {
+                if (item.product_id === undefined || item.quantity === undefined) {
+                    await conn.rollback();
+                    return res.status(400).json({
+                        error: `Data item pesanan tidak lengkap: ${JSON.stringify(item)}`
+                    });
+                }
+
+                const [stockRows] = await conn.execute(
+                    'SELECT SUM(quantity_change) AS current_stock FROM stock_history WHERE product_id = ? FOR UPDATE',
+                    [item.product_id]
+                );
+
+                const currentStock = stockRows[0].current_stock || 0;
+
+                if (currentStock < item.quantity) {
+                    await conn.rollback();
+                    return res.status(400).json({
+                        error: `Stok tidak cukup untuk produk ID ${item.product_id}. Stok saat ini: ${currentStock}, Dibutuhkan: ${item.quantity}. Harap update stok terlebih dahulu.`
+                    });
+                }
+            }
+
+            for (const item of orderItems) {
+                await conn.execute(
+                    'INSERT INTO stock_history (product_id, quantity, quantity_change, type, source) VALUES (?, ?, ?, ?, ?)',
+                    [item.product_id, item.quantity, -item.quantity, 'out', 'shipment']
+                );
+            }
+        }
+
+        const notifMessage = generateNotificationMessage(orderId, currentStatus, trimmedStatus);
+
+        if (notifMessage && userId !== null && userId !== undefined && orderId !== undefined) {
+            await conn.execute(
+                'INSERT INTO notification (user_id, order_id, message, is_read, created_at) VALUES (?, ?, ?, ?, NOW())',
+                [userId, orderId, notifMessage, false]
+            );
+        }
+
         await conn.execute(
-          'INSERT INTO stock_history (product_id, quantity, quantity_change, type, source) VALUES (?, ?, ?, ?, ?)',
-          [item.product_id, item.quantity, -item.quantity, 'out', 'shipment']
+            'UPDATE `order` SET status = ? WHERE order_id = ?',
+            [trimmedStatus, orderId]
         );
-      }
+
+        await conn.commit();
+        res.json({ message: 'Status order berhasil diupdate.' });
+
+    } catch (err) {
+        await conn.rollback();
+        console.error('Error updating order status:', err);
+        res.status(500).json({ error: 'Gagal update status order: ' + err.message });
+    } finally {
+        if (conn) {
+            conn.release();
+        }
     }
-
-    const notifMessage = generateNotificationMessage(orderId, currentStatus, trimmedStatus);
-
-    if (notifMessage && userId !== null && userId !== undefined && orderId !== undefined) {
-      await conn.execute(
-        'INSERT INTO notification (user_id, order_id, message, is_read, created_at) VALUES (?, ?, ?, ?, NOW())',
-        [userId, orderId, notifMessage, false]
-      );
-    }
-
-    await conn.execute(
-      'UPDATE `order` SET status = ? WHERE order_id = ?',
-      [trimmedStatus, orderId]
-    );
-
-    await conn.commit();
-    res.json({ message: 'Status order berhasil diupdate.' });
-
-  } catch (err) {
-    await conn.rollback();
-    console.error('Error updating order status:', err);
-    res.status(500).json({ error: 'Gagal update status order: ' + err.message });
-  } finally {
-    if (conn) {
-      conn.release();
-    }
-  }
 };
 
 const cancelPayment = async (req, res) => {

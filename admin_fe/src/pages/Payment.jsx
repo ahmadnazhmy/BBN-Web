@@ -413,7 +413,7 @@ function Payment() {
               ) : (
                 filteredPayments.map((p, idx) => {
                   const showCreateInvoiceButton = p.status === 'dp_paid' && !hasFullPayment(p.order_id);
-                  const isStatusDisabled = p.status === 'failed'|| p.status === 'completed';
+                  const isStatusDisabled = p.status === 'failed' || p.status === 'completed' || p.status === 'dp_paid';
 
                   return (
                     <tr key={p.payment_id} className="border-b border-gray-200 even:bg-gray-50 hover:bg-gray-100 transition-colors">

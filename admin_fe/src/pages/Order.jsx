@@ -94,13 +94,8 @@ export default function Order() {
     const hasSettlementComplete = payments.some(p => p.payment_type === 'settlement' && p.status === 'completed');
     if (hasDpPaid && hasSettlementComplete) return 'Lunas';
 
-    if (order.delivery_method === 'pickup' &&
-        (order.status === 'processing' || order.status === 'ready' || order.status === 'picked_up' || order.status === 'delivered')) {
-        return 'Lunas';
-    }
-
     return 'Belum Lunas';
-  };
+};
 
   const getPaymentStatusBadgeClass = (status) => {
     switch (status) {
