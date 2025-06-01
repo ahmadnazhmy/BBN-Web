@@ -68,7 +68,7 @@ const getOrderStatusInfo = (status) => {
         case 'unpaid': return { text: 'Belum Bayar', color: 'text-red-600', icon: faCreditCard };
         case 'pending': return { text: 'Sedang Verifikasi', color: 'text-yellow-600', icon: faHourglassHalf };
         case 'processing': return { text: 'Sedang Dikemas', color: 'text-blue-600', icon: faBoxOpen };
-        case 'ready': return { text: 'Siap Diambil', color: 'text-teal-600', icon: faHandshakeSimple }; 
+        case 'ready': return { text: 'Siap Diambil', color: 'text-teal-600', icon: faHandshakeSimple };
         case 'shipped': return { text: 'Sedang Diantar', color: 'text-purple-600', icon: faTruck };
         case 'delivered': return { text: 'Sudah Diterima', color: 'text-green-600', icon: faCheckCircle };
         case 'picked_up': return { text: 'Sudah Diambil', color: 'text-green-600', icon: faCheckCircle };
@@ -110,7 +110,6 @@ function History() {
     const [error, setError] = useState(null);
     const token = localStorage.getItem('token');
     const navigate = useNavigate();
-    const backendURL = 'https://bbn-web-production.up.railway.app';
 
     useEffect(() => {
         if (!token) {
@@ -208,7 +207,6 @@ function History() {
                     <div className="space-y-6">
                         {history.map((entry) => {
                             const orderStatusInfo = getOrderStatusInfo(entry.order_status);
-                            const canCompletePayment = entry.order_status === 'unpaid' && !entry.hasPendingVerificationPayment;
                             const showDeliveryInfo = entry.order_status === 'shipped' && entry.delivery_method === 'delivery';
                             const estimatedDeliveryDateFormatted = entry.estimated_date ? new Date(entry.estimated_date).toLocaleDateString('id-ID', {
                                 weekday: 'short', month: 'short', day: 'numeric'
@@ -268,98 +266,124 @@ function History() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                              {entry.payments?.length > 0 ? (
-                                                entry.payments.map((p, idx) => {
-                                                  const translatedPayment = translatePaymentStatus(p.status, entry.order_status, p.payment_type);
-                                                  const dueDateInfo = getPaymentDueDateInfo(p.status, p.due_date);
-                                                  const showCompletePaymentButton = canCompletePayment && p.status !== 'failed' && p.status !== 'settlement' && p.status !== 'completed';
-                                                    return (
-                                                      <tr key={p.payment_id} className="border-b border-gray-100 last:border-b-0 hover:bg-blue-50">
-                                                         <td className="px-4 py-3 text-center text-gray-800">{idx + 1}</td>
-                                                         <td className="px-4 py-3 text-left text-gray-800">{formatPaymentType(p.payment_type) || '-'}</td>
-                                                         <td className="px-4 py-3 text-left text-gray-800 capitalize">{p.payment_method?.replace('_', ' ') || '-'}</td>
-                                                         <td className="px-4 py-3 text-right text-gray-800">Rp {Number(p.amount).toLocaleString('id-ID')}</td>
-                                                         <td className="px-4 py-3 text-left text-gray-800">
-                                                            <span
-                                                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusBadgeClasses(p.status, entry.order_status, p.payment_type)}`}
-                                                            > 
-                                                            {translatedPayment} 
-                                                            </span>
+                                                {entry.payments?.length > 0 ? (
+                                                    entry.payments.map((p, idx) => {
+                                                        const translatedPayment = translatePaymentStatus(p.status, entry.order_status, p.payment_type);
+                                                        const dueDateInfo = getPaymentDueDateInfo(p.status, p.due_date);
+                                                        const showCompletePaymentButton =
+                                                            (p.status === 'pending_dp' || p.status === 'pending_fullpayment') ||
+                                                            (p.status === 'failed' && p.payment_type !== PaymentType.SETTLEMENT && p.payment_type !== PaymentType.FULLPAYMENT) ||
+                                                            (p.status === 'pending' && (entry.order_status === 'unpaid' || entry.order_status === 'pending'));
+
+                                                        return (
+                                                            <tr key={p.payment_id} className="border-b border-gray-100 last:border-b-0 hover:bg-blue-50">
+                                                               <td className="px-4 py-3 text-center text-gray-800">{idx + 1}</td>
+                                                               <td className="px-4 py-3 text-left text-gray-800">{formatPaymentType(p.payment_type) || '-'}</td>
+                                                               <td className="px-4 py-3 text-left text-gray-800 capitalize">{p.payment_method?.replace('_', ' ') || '-'}</td>
+                                                               <td className="px-4 py-3 text-right text-gray-800">Rp {Number(p.amount).toLocaleString('id-ID')}</td>
+                                                               <td className="px-4 py-3 text-left text-gray-800">
+                                                                    <span
+                                                                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusBadgeClasses(p.status, entry.order_status, p.payment_type)}`}
+                                                                    >
+                                                                    {translatedPayment}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-left text-gray-800">
+                                                                    {new Date(p.created_at || p.date).toLocaleDateString('id-ID', {
+                                                                        year: 'numeric',
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit',
+                                                                    })}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-left text-gray-800">
+                                                                    <div className={`flex items-center ${dueDateInfo.color}`}>
+                                                                        <FontAwesomeIcon icon={faCalendarAlt} className="mr-1 text-xs" />
+                                                                        <span>{dueDateInfo.text}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <div className="flex flex-col space-y-2 items-center">
+                                                                        <button
+                                                                            onClick={() => navigate(`/invoice?payment_id=${p.payment_id}`)}
+                                                                            className="w-40 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
+                                                                        >
+                                                                            Lihat Invoice
+                                                                        </button>
+                                                                        {showCompletePaymentButton && (
+                                                                            <button
+                                                                                onClick={() => navigate(`/payment?order_id=${entry.order_id}&payment_id=${p.payment_id}`)}
+                                                                                className="w-40 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
+                                                                            >
+                                                                                Selesaikan Pembayaran
+                                                                            </button>
+                                                                        )}
+                                                                        {p.status === 'failed' && (
+                                                                            <button
+                                                                                onClick={() => navigate(`/payment/retry?payment_id=${p.payment_id}`)}
+                                                                                className="w-40 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
+                                                                            >
+                                                                                Coba Lagi Pembayaran
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan="8" className="px-4 py-3 text-center text-gray-500">
+                                                            Belum ada detail pembayaran untuk pesanan ini.
                                                         </td>
-                                                        <td className="px-4 py-3 text-left text-gray-800">
-                                                          {new Date(p.created_at || p.date).toLocaleDateString('id-ID', {
-                                                            year: 'numeric',
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                            hour: '2-digit',
-                                                            minute: '2-digit',
-                                                          })}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-left text-gray-800">
-                                                          <div className={`flex items-center ${dueDateInfo.color}`}>
-                                                            <FontAwesomeIcon icon={faCalendarAlt} className="mr-1 text-xs" />
-                                                            <span>{dueDateInfo.text}</span>
-                                                          </div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center">
-                                                          <div className="flex flex-col space-y-2 items-center">
-                                                            <button
-                                                              onClick={() => navigate(`/invoice?payment_id=${p.payment_id}`)}
-                                                              className="w-40 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
-                                                            >
-                                                            Lihat Invoice
-                                                            </button>
-                                                            {p.status === 'failed' && (
-                                                            <button
-                                                              onClick={() => navigate(`/payment/retry?payment_id=${p.payment_id}`)}
-                                                              className="w-40 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
-                                                            >
-                                                            Bayar Ulang
-                                                            </button>
-                                                            )}
-                                                            {showCompletePaymentButton && (
-                                                              <button
-                                                                onClick={() => navigate(`/payment?payment_id=${p.payment_id}`)}
-                                                                className="w-40 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
-                                                              >
-                                                                Selesaikan Pembayaran
-                                                              </button>
-                                                            )}
-                                                          </div>
-                                                        </td>
-                                                      </tr> 
-                                                    );
-                                                  })
-                                                ) : (
-                                                  <tr>
-                                                    <td colSpan="8" className="px-4 py-4 text-center text-gray-500 italic">
-                                                        Belum ada pembayaran tercatat untuk pesanan ini.
-                                                    </td>
-                                                  </tr>
+                                                    </tr>
                                                 )}
                                             </tbody>
                                         </table>
                                     </div>
 
-                                    {entry.order_status === 'unpaid' && entry.hasPendingVerificationPayment && (
-                                        <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-md text-sm">
-                                            <FontAwesomeIcon icon={faHourglassHalf} className="mr-2" />
-                                            Order ini memiliki pembayaran yang menunggu verifikasi.
-                                        </div>
-                                    )}
-
-                                    {showDeliveryInfo && entry.file_delivery_order && (
-                                        <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
-                                            <a
-                                                href={`${backendURL}${entry.file_delivery_order}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-base font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
-                                            >
-                                                Lihat File DO
-                                            </a>
-                                        </div>
-                                    )}
+                                    <h3 className="font-semibold text-gray-700 mb-4 mt-6 text-lg">Detail Produk:</h3>
+                                    <div className="overflow-x-auto rounded-lg border border-gray-200">
+                                        <table className="min-w-full bg-white table-auto text-sm">
+                                            <thead className="bg-gray-100">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b border-gray-200">#</th>
+                                                    <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b border-gray-200">Nama Produk</th>
+                                                    <th className="px-4 py-3 text-right text-gray-700 font-semibold border-b border-gray-200">Jumlah</th>
+                                                    <th className="px-4 py-3 text-right text-gray-700 font-semibold border-b border-gray-200">Harga Satuan</th>
+                                                    <th className="px-4 py-3 text-right text-gray-700 font-semibold border-b border-gray-200">Subtotal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {entry.order_items?.length > 0 ? (
+                                                    entry.order_items.map((item, itemIdx) => (
+                                                        <tr key={item.product_id} className="border-b border-gray-100 last:border-b-0 hover:bg-blue-50">
+                                                            <td className="px-4 py-3 text-center text-gray-800">{itemIdx + 1}</td>
+                                                            <td className="px-4 py-3 text-left text-gray-800">{item.product_name}</td>
+                                                            <td className="px-4 py-3 text-right text-gray-800">{item.quantity}</td>
+                                                            <td className="px-4 py-3 text-right text-gray-800">Rp {Number(item.price).toLocaleString('id-ID')}</td>
+                                                            <td className="px-4 py-3 text-right text-gray-800">Rp {Number(item.quantity * item.price).toLocaleString('id-ID')}</td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan="5" className="px-4 py-3 text-center text-gray-500">
+                                                            Tidak ada produk dalam pesanan ini.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="mt-6 flex justify-end">
+                                        <button
+                                            onClick={() => navigate(`/order-detail/${entry.order_id}`)}
+                                            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium transition-colors duration-200 shadow-md"
+                                        >
+                                            Lihat Detail Pesanan
+                                        </button>
+                                    </div>
                                 </div>
                             );
                         })}
