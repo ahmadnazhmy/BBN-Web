@@ -88,7 +88,7 @@ function Invoice() {
 
   useEffect(() => {
     if (!admintoken) {
-      navigate('/admin/login');
+      navigate('/');
       return;
     }
 
@@ -104,7 +104,7 @@ function Invoice() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`http://localhost:5000/api/admin/payment/by-id?payment_id=${paymentId}`, {
+        const res = await fetch(`https://bbn-web-production.up.railway.app/api/admin/payment/by-id?payment_id=${paymentId}`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${admintoken}`,

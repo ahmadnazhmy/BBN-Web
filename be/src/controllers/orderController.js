@@ -200,6 +200,9 @@ const updateOrderStatus = async (req, res) => {
   const orderId = req.params.id;
   const { status } = req.body;
 
+  console.log('Nilai status dari req.body:', status);
+  console.log('Tipe data status:', typeof status);
+
   const allowedStatuses = [
     'unpaid', 'pending_fullpayment', 'pending_dp', 'processing',
     'ready', 'shipped', 'delivered', 'picked_up', 'cancel'
