@@ -92,8 +92,6 @@ function Invoice() {
       return;
     }
 
-    console.log('Admin Token:', admintoken);
-
     if (!paymentId) {
       setError('Payment ID tidak ditemukan di URL.');
       setLoading(false);
