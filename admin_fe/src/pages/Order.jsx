@@ -428,7 +428,7 @@ export default function Order() {
                                                         </label>
 
                                                         {order.file_delivery_order ? (
-                                                            <a href={`${backendURL}${order.file_delivery_order}`} target="_blank" rel="noopener noreferrer" className='text-blue-600 hover:text-blue-800 text-xs underline'>
+                                                            <a href={order.file_delivery_order} target="_blank" rel="noopener noreferrer" className='text-blue-600 hover:text-blue-800 text-xs underline'>
                                                                 Lihat File DO
                                                             </a>
                                                         ) : (

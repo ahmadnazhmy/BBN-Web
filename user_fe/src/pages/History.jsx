@@ -208,7 +208,7 @@ function History() {
                     <div className="space-y-6">
                         {history.map((entry) => {
                             const orderStatusInfo = getOrderStatusInfo(entry.order_status);
-                            const showDeliveryInfo = entry.order_status === 'shipped' && entry.delivery_method === 'delivery';
+                            const showDeliveryInfo = (entry.order_status === 'shipped' || entry.order_status === 'delivered') && entry.delivery_method === 'delivery';
                             const estimatedDeliveryDateFormatted = entry.estimated_date ? new Date(entry.estimated_date).toLocaleDateString('id-ID', {
                                 weekday: 'short', month: 'short', day: 'numeric'
                             }) : null;
@@ -346,7 +346,7 @@ function History() {
 
                                     {showDeliveryInfo && entry.file_delivery_order && (
                                         <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
-                                            <a href={`${backendURL}${entry.file_delivery_order}`}
+                                            <a href={entry.file_delivery_order}
                                                target="_blank"
                                                rel="noopener noreferrer"
                                                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-base font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
