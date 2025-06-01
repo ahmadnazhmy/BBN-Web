@@ -103,26 +103,26 @@ function Payment() {
   }, [showInvoiceModal, selectedPayment, orderDetail, PaymentType.DOWNPAYMENT]);
 
   useEffect(() => {
-    const fetchOrderDetails = async (orderId) => {
-      try {
-        const token = localStorage.getItem('adminToken');
-        const res = await fetch(`${backendURL}/api/admin/order/${orderId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!res.ok) throw new Error('Gagal mengambil detail order');
-        const data = await res.json();
-        setOrderDetail(data);
-      } catch (err) {
-        console.error('Error fetching order details:', err);
-      }
-    };
-
-    if (showInvoiceModal && selectedPayment) {
-      fetchOrderDetails(selectedPayment.order_id);
+  const fetchOrderDetails = async (paymentId) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`${backendURL}/api/admin/order/${paymentId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error('Gagal mengambil detail order');
+      const data = await res.json();
+      setOrderDetail(data);
+    } catch (err) {
+      console.error('Error fetching order details:', err);
     }
-  }, [showInvoiceModal, selectedPayment, backendURL]);
+  };
+
+  if (showInvoiceModal && selectedPayment && selectedPayment.payment_id) {
+    fetchOrderDetails(selectedPayment.payment_id);
+  }
+}, [showInvoiceModal, selectedPayment, backendURL]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
