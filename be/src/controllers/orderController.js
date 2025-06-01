@@ -238,7 +238,7 @@ const updateOrderStatus = async (req, res) => {
             ready: `Pesanan Anda #${orderId} siap untuk diambil.`,
             delivered: `Pesanan Anda #${orderId} telah berhasil diantar.`,
             cancel: `Pesanan Anda #${orderId} telah dibatalkan.`,
-            processing: `Pesanan Anda #${orderId} sedang diproses.`
+            processing: `Pesanan Anda #${orderId} sedang diproduksi.`
         };
         return oldStatus !== newStatus ? messages[newStatus] || '' : '';
     };
@@ -274,9 +274,8 @@ const updateOrderStatus = async (req, res) => {
         }
 
         const statusesRequiringPayment = ['ready', 'shipped', 'picked_up', 'delivered'];
-
         if (statusesRequiringPayment.includes(trimmedStatus)) {
-            const paymentStatus = await getPaymentStatus(conn, orderId); 
+            const paymentStatus = await getPaymentStatus(conn, orderId);
             if (paymentStatus === 'Belum Lunas') {
                 await conn.rollback();
                 return res.status(400).json({
@@ -305,7 +304,7 @@ const updateOrderStatus = async (req, res) => {
                 }
 
                 const [stockRows] = await conn.execute(
-                    'SELECT SUM(quantity_change) AS current_stock FROM stock_history WHERE product_id = ? FOR UPDATE',
+                    'SELECT SUM(quantity_change) AS current_stock FROM stock_history WHERE product_id = ? FOR UPDATE', // Lock stock juga
                     [item.product_id]
                 );
 
@@ -328,7 +327,6 @@ const updateOrderStatus = async (req, res) => {
         }
 
         const notifMessage = generateNotificationMessage(orderId, currentStatus, trimmedStatus);
-
         if (notifMessage && userId !== null && userId !== undefined && orderId !== undefined) {
             await conn.execute(
                 'INSERT INTO notification (user_id, order_id, message, is_read, created_at) VALUES (?, ?, ?, ?, NOW())',

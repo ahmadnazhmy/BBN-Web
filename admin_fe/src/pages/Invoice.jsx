@@ -22,7 +22,7 @@ function Invoice() {
     pending_verification: 'Menunggu Verifikasi',
     completed: 'Selesai',
     failed: 'Gagal', 
-    processing: 'Dikemas',
+    processing: 'Diproduksi',
     ready: 'Siap Diambil',
     shipped: 'Diantar',
     delivered: 'Diterima',

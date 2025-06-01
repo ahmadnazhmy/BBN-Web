@@ -67,7 +67,7 @@ const getOrderStatusInfo = (status) => {
     switch (lowerStatus) {
         case 'unpaid': return { text: 'Belum Bayar', color: 'text-red-600', icon: faCreditCard };
         case 'pending': return { text: 'Sedang Verifikasi', color: 'text-yellow-600', icon: faHourglassHalf };
-        case 'processing': return { text: 'Sedang Dikemas', color: 'text-blue-600', icon: faBoxOpen };
+        case 'processing': return { text: 'Sedang Diproduksi', color: 'text-blue-600', icon: faBoxOpen };
         case 'ready': return { text: 'Siap Diambil', color: 'text-teal-600', icon: faHandshakeSimple };
         case 'shipped': return { text: 'Sedang Diantar', color: 'text-purple-600', icon: faTruck };
         case 'delivered': return { text: 'Sudah Diterima', color: 'text-green-600', icon: faCheckCircle };

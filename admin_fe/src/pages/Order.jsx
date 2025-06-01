@@ -23,7 +23,7 @@ export default function Order() {
   const statusLabels = {
     unpaid: 'Belum Dibayar',
     pending: 'Menunggu',
-    processing: 'Dikemas',
+    processing: 'Diproduksi',
     ready: 'Siap Diambil',
     shipped: 'Diantar',
     delivered: 'Diterima',
@@ -84,8 +84,13 @@ export default function Order() {
     setFilteredOrders(result);
   }, [orders, filterMethod, filterMonthYear]);
 
-  const getPaymentStatus = (order) => {
-    const payments = order.payments || [];
+  const getPaymentStatus = async (conn, orderId) => {
+    const [paymentsRows] = await conn.execute(
+        'SELECT payment_type, status FROM payment WHERE order_id = ?',
+        [orderId]
+    );
+
+    const payments = paymentsRows || []; 
 
     const hasFullPayment = payments.some(p => p.payment_type === 'fullpayment' && p.status === 'completed');
     if (hasFullPayment) return 'Lunas';
@@ -95,7 +100,7 @@ export default function Order() {
     if (hasDpPaid && hasSettlementComplete) return 'Lunas';
 
     return 'Belum Lunas';
-};
+  };
 
   const getPaymentStatusBadgeClass = (status) => {
     switch (status) {
