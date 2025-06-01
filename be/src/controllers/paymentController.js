@@ -361,7 +361,7 @@ const getPaymentByPaymentId = async (req, res) => {
 
   try {
     const [paymentRows] = await db.execute(`
-      SELECT p.*, p.proof_of_payment_url AS proof_of_payment, u.shop_name, u.email, u.phone,
+      SELECT p.*, p.proof_of_payment, u.shop_name, u.email, u.phone,
              o.location, o.delivery_method
       FROM payment p
       JOIN user u ON p.user_id = u.user_id

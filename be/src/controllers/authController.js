@@ -101,8 +101,8 @@ const registerAdmin = async (req, res) => {
     const createdAt = getJakartaDateTime();
 
     const query = `
-      INSERT INTO admin (username, password_hash, created_at)
-      VALUES (?, ?, ?)
+      INSERT INTO admin (username, password_hash)
+      VALUES (?, ?)
     `;
     const values = [username, hashedPassword, createdAt];
 
