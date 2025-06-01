@@ -200,10 +200,38 @@ const updateOrderStatus = async (req, res) => {
   const orderId = req.params.id;
   const { status } = req.body;
 
-  const allowed = ['unpaid', 'pending_fullpayment', 'pending_dp', 'processing', 'ready', 'shipped', 'delivered', 'picked_up', 'cancel'];
-  if (!allowed.includes(status)) {
+  const allowedStatuses = [
+    'unpaid', 'pending_fullpayment', 'pending_dp', 'processing',
+    'ready', 'shipped', 'delivered', 'picked_up', 'cancel'
+  ];
+
+  if (!allowedStatuses.includes(status)) {
     return res.status(400).json({ error: 'Status tidak valid' });
   }
+
+  const allowedTransitions = {
+    unpaid: ['pending_dp', 'pending_fullpayment', 'cancel'],
+    pending_dp: ['processing', 'cancel'],
+    pending_fullpayment: ['processing', 'cancel'],
+    processing: ['ready', 'cancel'],
+    ready: ['shipped', 'picked_up', 'cancel'],
+    shipped: ['delivered'],
+    picked_up: [],
+    delivered: [],
+    cancel: []
+  };
+
+  const generateNotificationMessage = (orderId, oldStatus, newStatus) => {
+    const messages = {
+      shipped: `Pesanan Anda #${orderId} sedang diantar.`,
+      picked_up: `Pesanan Anda #${orderId} telah berhasil diambil.`,
+      ready: `Pesanan Anda #${orderId} siap untuk diambil.`,
+      delivered: `Pesanan Anda #${orderId} telah berhasil diantar.`,
+      cancel: `Pesanan Anda #${orderId} telah dibatalkan.`,
+      processing: `Pesanan Anda #${orderId} sedang diproses.`
+    };
+    return oldStatus !== newStatus ? messages[newStatus] || '' : '';
+  };
 
   const conn = await db.getConnection();
   try {
@@ -216,19 +244,24 @@ const updateOrderStatus = async (req, res) => {
 
     if (orderRows.length === 0) {
       await conn.rollback();
-      conn.release();
       return res.status(404).json({ error: 'Order tidak ditemukan' });
     }
-    const currentOrderStatus = orderRows[0].status;
-    const orderUserId = orderRows[0].user_id;
 
-    if (currentOrderStatus === 'delivered' || currentOrderStatus === 'picked_up' || currentOrderStatus === 'cancel') {
+    const currentStatus = orderRows[0].status;
+    const userId = orderRows[0].user_id;
+
+    if (['delivered', 'picked_up', 'cancel'].includes(currentStatus)) {
       await conn.rollback();
-      conn.release();
       return res.status(400).json({ error: 'Status pesanan sudah final dan tidak dapat diubah.' });
     }
 
-    if ((status === 'shipped' && currentOrderStatus !== 'shipped') || (status === 'picked_up' && currentOrderStatus !== 'picked_up')) {
+    const validNextStatuses = allowedTransitions[currentStatus] || [];
+    if (!validNextStatuses.includes(status)) {
+      await conn.rollback();
+      return res.status(400).json({ error: `Transisi status dari '${currentStatus}' ke '${status}' tidak diperbolehkan.` });
+    }
+
+    if ((status === 'shipped' && currentStatus !== 'shipped') || (status === 'picked_up' && currentStatus !== 'picked_up')) {
       const [orderItems] = await conn.execute(
         'SELECT product_id, quantity FROM order_item WHERE order_id = ?',
         [orderId]
@@ -236,22 +269,22 @@ const updateOrderStatus = async (req, res) => {
 
       if (orderItems.length === 0) {
         await conn.rollback();
-        conn.release();
         return res.status(400).json({ error: 'Tidak ada item dalam pesanan ini.' });
       }
 
       for (const item of orderItems) {
-        const [stockHistoryRows] = await conn.execute(
+        const [stockRows] = await conn.execute(
           'SELECT SUM(quantity_change) AS current_stock FROM stock_history WHERE product_id = ? FOR UPDATE',
           [item.product_id]
         );
 
-        const currentStock = stockHistoryRows[0].current_stock || 0;
+        const currentStock = stockRows[0].current_stock || 0;
 
         if (currentStock < item.quantity) {
           await conn.rollback();
-          conn.release();
-          return res.status(400).json({ error: `Stok tidak cukup untuk produk ID ${item.product_id}. Stok saat ini: ${currentStock}, Dibutuhkan: ${item.quantity}. Harap update stok terlebih dahulu.` });
+          return res.status(400).json({
+            error: `Stok tidak cukup untuk produk ID ${item.product_id}. Stok saat ini: ${currentStock}, Dibutuhkan: ${item.quantity}. Harap update stok terlebih dahulu.`
+          });
         }
       }
 
@@ -263,57 +296,38 @@ const updateOrderStatus = async (req, res) => {
       }
     }
 
-    let notificationMessage = '';
-    if (status === 'shipped' && currentOrderStatus !== 'shipped') {
-      notificationMessage = `Pesanan Anda #${orderId} sedang diantar.`;
-    } else if (status === 'picked_up' && currentOrderStatus !== 'picked_up') {
-      notificationMessage = `Pesanan Anda #${orderId} telah berhasil diambil.`;
-    } else if (status === 'ready' && currentOrderStatus !== 'ready') {
-      notificationMessage = `Pesanan Anda #${orderId} siap untuk diambil.`;
-    } else if (status === 'delivered' && currentOrderStatus !== 'delivered') {
-      notificationMessage = `Pesanan Anda #${orderId} telah berhasil diantar.`;
-    } else if (status === 'cancel' && currentOrderStatus !== 'cancel') {
-      notificationMessage = `Pesanan Anda #${orderId} telah dibatalkan.`;
-    } else if (status === 'processing' && currentOrderStatus !== 'processing') {
-      notificationMessage = `Pesanan Anda #${orderId} sedang diproses.`;
-    }
-
-    if (notificationMessage) {
+    const notifMessage = generateNotificationMessage(orderId, currentStatus, status);
+    if (notifMessage) {
       await conn.execute(
         'INSERT INTO notification (user_id, order_id, message, is_read, created_at) VALUES (?, ?, ?, ?, NOW())',
-        [orderUserId, orderId, notificationMessage, false]
+        [userId, orderId, notifMessage, false]
       );
     }
 
-    const [result] = await conn.execute(
+    await conn.execute(
       'UPDATE `order` SET status = ? WHERE order_id = ?',
       [status, orderId]
     );
 
-    if (result.affectedRows === 0) {
-      await conn.rollback();
-      conn.release();
-      return res.status(404).json({ error: 'Order tidak ditemukan' });
-    }
-
     await conn.commit();
-    conn.release();
-
     res.json({ message: 'Status order berhasil diupdate' });
+
   } catch (err) {
     await conn.rollback();
+    console.error('Error updating order status:', err);
+    res.status(500).json({ error: 'Gagal update status order: ' + err.message });
+  } finally {
     conn.release();
-    console.error('Error updating order status or stock:', err);
-    res.status(500).json({ error: 'Gagal update status order atau stok. ' + err.message });
   }
 };
+
 
 const cancelPayment = async (req, res) => {
   const userId = req.user.id;
   const orderId = req.params.id;
 
   const conn = await db.getConnection();
-  try {
+  try { 
     await conn.beginTransaction();
 
     const [orders] = await conn.execute(
@@ -370,7 +384,6 @@ const confirmDelivery = async (req, res) => {
 const uploadDOFile = async (req, res) => {
   const { orderId } = req.params;
   const doFileUrl = req.file?.path;
-  const doFilePublicId = req.file?.filename;
 
   if (!doFileUrl) {
     return res.status(400).json({ message: 'No file uploaded' });
@@ -381,8 +394,8 @@ const uploadDOFile = async (req, res) => {
     await conn.beginTransaction();
 
     const [result] = await conn.execute(
-      `UPDATE \`order\` SET do_file_url = ?, do_file_public_id = ? WHERE order_id = ?`,
-      [doFileUrl, doFilePublicId, orderId]
+      `UPDATE \`order\` SET file_delivery_order = ? WHERE order_id = ?`,
+      [doFileUrl, orderId]
     );
 
     if (result.affectedRows === 0) {
@@ -397,7 +410,6 @@ const uploadDOFile = async (req, res) => {
       message: 'File DO berhasil diunggah dan disimpan!',
       orderId: orderId,
       doFileUrl: doFileUrl,
-      doFilePublicId: doFilePublicId
     });
   } catch (error) {
     await conn.rollback();
@@ -420,7 +432,7 @@ const updateEstimatedDate = async (req, res) => {
     await conn.beginTransaction();
 
     const [result] = await conn.execute(
-      'UPDATE `order` SET estimated_delivery_date = ? WHERE order_id = ?',
+      'UPDATE `order` SET estimated_date = ? WHERE order_id = ?',
       [estimated_date, orderId]
     );
 

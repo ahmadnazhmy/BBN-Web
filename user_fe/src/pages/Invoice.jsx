@@ -394,7 +394,7 @@ function Invoice() {
               <div className="mt-4 proof-wrapper">
                 <p className="proof-text text-sm text-gray-600 mb-2">Bukti Pembayaran Anda:</p>
                 <img
-                  href={p.proof_of_payment}
+                  src={payment.proof_of_payment}
                   alt="Bukti Pembayaran"
                   className="proof-image w-full max-w-sm h-auto object-contain border border-gray-300 rounded-md shadow-sm"
                 />
