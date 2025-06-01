@@ -195,6 +195,7 @@ const updatePaymentStatus = async (req, res) => {
   ];
 
   if (!status || !allowedStatus.includes(status)) {
+    console.log(`[DEBUG] Status "${status}" tidak valid atau tidak ditemukan.`);
     return res.status(400).json({ error: 'Status tidak valid' });
   }
 
@@ -248,6 +249,7 @@ const updatePaymentStatus = async (req, res) => {
       if (status === 'failed') {
         newOrderStatus = 'unpaid';
       }
+
       await conn.execute(`
         UPDATE \`order\`
         SET status = ?
@@ -274,7 +276,7 @@ const updatePaymentStatus = async (req, res) => {
 
     await conn.execute(
       `INSERT INTO notification (user_id, order_id, message, is_read, created_at)
-         VALUES (?, ?, ?, FALSE, ?)`,
+      VALUES (?, ?, ?, FALSE, ?)`,
       [paymentRowUser.user_id, orderId, notifMessage, getJakartaDateTime()]
     );
 
@@ -283,7 +285,7 @@ const updatePaymentStatus = async (req, res) => {
 
     res.status(200).json({ message: 'Status pembayaran berhasil diubah' });
   } catch (err) {
-    console.error(err);
+    console.error(`[ERROR] Terjadi kesalahan saat memperbarui status pembayaran:`, err);
     await conn.rollback();
     conn.release();
     res.status(500).json({ error: 'Terjadi kesalahan saat memperbarui status pembayaran' });

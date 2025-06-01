@@ -175,7 +175,6 @@ function Payment() {
     pending: 'Verifikasi',
     completed: 'Berhasil',
     failed: 'Gagal',
-    cancelled: 'Dibatalkan',
   };
 
   useEffect(() => {
@@ -414,7 +413,7 @@ function Payment() {
               ) : (
                 filteredPayments.map((p, idx) => {
                   const showCreateInvoiceButton = p.status === 'dp_paid' && !hasFullPayment(p.order_id);
-                  const isStatusDisabled = p.status === 'failed' || p.status === 'cancelled' || p.status === 'completed';
+                  const isStatusDisabled = p.status === 'failed'|| p.status === 'completed';
 
                   return (
                     <tr key={p.payment_id} className="border-b border-gray-200 even:bg-gray-50 hover:bg-gray-100 transition-colors">
@@ -444,7 +443,6 @@ function Payment() {
                               <option value="completed">{statusLabels.completed}</option>
                             )}
                             <option value="failed">{statusLabels.failed}</option>
-                            <option value="cancelled">{statusLabels.cancelled}</option>
                           </select>
                           <FontAwesomeIcon
                             icon={faChevronDown}
