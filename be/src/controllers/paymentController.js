@@ -62,7 +62,6 @@ const uploadProof = async (req, res) => {
   const order_id = req.body.order_id;
   const amount = parseInt(req.body.amount) || 0;
   const proofUrl = req.file?.path;
-  const proofPublicId = req.file?.filename; 
   const paymentType = req.body.payment_type || '';
   const paymentTypeLower = paymentType.toLowerCase();
 
@@ -112,14 +111,14 @@ const uploadProof = async (req, res) => {
       const paymentId = existingPayments[0].payment_id;
       await conn.execute(`
         UPDATE payment
-        SET proof_of_payment = ?, proof_of_payment_public_id = ?, amount = ?, payment_method = ?, status = ?, message = NULL
+        SET proof_of_payment = ?, amount = ?, payment_method = ?, status = ?, message = NULL
         WHERE payment_id = ?
-      `, [proofUrl, proofPublicId, amount, payment_method, initialStatus, paymentId]);
+      `, [proofUrl, amount, payment_method, initialStatus, paymentId]);
     } else {
       await conn.execute(`
-        INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment, proof_of_payment_public_id, payment_method, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [order_id, user_id, amount, initialStatus, proofUrl, proofPublicId, payment_method, getJakartaDateTime()]);
+        INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment, payment_method, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [order_id, user_id, amount, initialStatus, proofUrl, payment_method, getJakartaDateTime()]);
     }
 
     await conn.execute(`
