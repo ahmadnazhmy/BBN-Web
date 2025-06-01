@@ -79,7 +79,7 @@ const checkout = async (req, res) => {
 const getOrderDetailByPaymentId = async (req, res) => {
   try {
     const tokenUserId = req.user?.id;
-    const paymentId = req.params.id;
+    const paymentId = req.params.paymentId;
 
     if (!tokenUserId) {
       return res.status(401).json({ message: 'User tidak terautentikasi' });
