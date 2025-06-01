@@ -445,19 +445,24 @@ async function getUnpaidCount(req, res) {
 const createInvoiceSettlement = async (req, res) => {
   try {
     const { order_id, due_date } = req.body;
+    const [orders] = await db.query(
+      'SELECT total_price, user_id FROM `order` WHERE order_id = ?',
+      [order_id]
+    );
 
-    const [orders] = await db.query('SELECT total_price, user_id FROM \`order\` WHERE order_id = ?', [order_id]);
     if (orders.length === 0) {
       return res.status(404).json({ message: 'Order tidak ditemukan' });
     }
+
     const totalOrder = orders[0].total_price;
     const orderUserId = orders[0].user_id;
 
-    const [payments] = await db.query(`
-      SELECT COALESCE(SUM(amount), 0) as total_paid
-      FROM payment
-      WHERE order_id = ? AND status IN ('dp_paid', 'completed')
-    `, [order_id]);
+    const [payments] = await db.query(
+      `SELECT COALESCE(SUM(amount), 0) as total_paid 
+       FROM payment 
+       WHERE order_id = ? AND status IN ('dp_paid', 'completed')`,
+      [order_id]
+    );
     const totalPaid = payments[0].total_paid;
 
     const remainingAmount = totalOrder - totalPaid;
@@ -475,21 +480,20 @@ const createInvoiceSettlement = async (req, res) => {
       dueDateToUse = now.toISOString().split('T')[0];
     }
 
-    const payment_type = 'settlement';
-
-    const [insertResult] = await db.execute(`
-      INSERT INTO payment
-      (order_id, user_id, payment_type, amount, status, created_at, due_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [
-      order_id,
-      orderUserId,
-      payment_type,
-      remainingAmount,
-      'pending_fullpayment',
-      getJakartaDateTime(),
-      dueDateToUse
-    ]);
+    const [insertResult] = await db.execute(
+      `INSERT INTO payment 
+       (order_id, user_id, payment_type, amount, status, created_at, due_date) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        order_id,
+        orderUserId,
+        'settlement',
+        remainingAmount,
+        'pending_fullpayment',
+        getJakartaDateTime(),
+        dueDateToUse
+      ]
+    );
 
     res.status(201).json({
       message: 'Invoice pelunasan berhasil dibuat',
@@ -497,12 +501,12 @@ const createInvoiceSettlement = async (req, res) => {
       remaining_amount: remainingAmount,
       due_date: dueDateToUse
     });
+
   } catch (err) {
-    console.error(err);
+    console.error('Gagal membuat invoice pelunasan:', err);
     res.status(500).json({ message: 'Gagal membuat invoice pelunasan' });
   }
 };
-
 
 module.exports = {
   getOrderPaymentDetailsWithItems,
