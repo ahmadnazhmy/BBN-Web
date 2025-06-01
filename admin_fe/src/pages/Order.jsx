@@ -87,7 +87,7 @@ export default function Order() {
   const getPaymentStatus = (order) => {
     const payments = order.payments || [];
 
-    const hasFullPayment = payments.some(p => p.payment_type === 'fullpayment' && p.status === 'complete');
+    const hasFullPayment = payments.some(p => p.payment_type === 'fullpayment' && p.status === 'completed');
     if (hasFullPayment) return 'Lunas';
 
     const hasDpPaid = payments.some(p => p.payment_type === 'downpayment' && p.status === 'dp_paid');

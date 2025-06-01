@@ -34,7 +34,7 @@ function Dashboard() {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('adminToken');
         if (!token) {
           showNotification('Anda tidak memiliki izin. Silakan login kembali.', 'error');
           setError('Unauthorized: No token found.');
