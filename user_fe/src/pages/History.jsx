@@ -343,6 +343,18 @@ function History() {
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {showDeliveryInfo && entry.file_delivery_order && (
+                                        <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
+                                            <a href={`${backendURL}${entry.file_delivery_order}`}
+                                               target="_blank"
+                                               rel="noopener noreferrer"
+                                               className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-base font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
+                                            >
+                                                Lihat File DO
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

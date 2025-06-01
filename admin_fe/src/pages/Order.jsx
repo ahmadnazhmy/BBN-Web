@@ -162,8 +162,6 @@ export default function Order() {
                 throw new Error(errorData.error || 'Gagal mengubah status');
             }
 
-            // Setelah update sukses, panggil fetchOrders lagi untuk refresh data
-            // Ini akan memastikan data pembayaran juga terupdate jika ada perubahan
             await fetchOrders();
 
             const label = statusLabels[newStatus] || newStatus;
@@ -204,7 +202,7 @@ export default function Order() {
 
             showNotification('File DO berhasil diunggah', 'success');
 
-            fetchOrders(); // Refresh data setelah upload
+            fetchOrders(); 
         } catch (err) {
             console.error(err);
             showNotification(err.message || 'Gagal upload file DO', 'error');
@@ -225,7 +223,7 @@ export default function Order() {
 
             if (!res.ok) throw new Error('Gagal mengubah estimasi');
 
-            fetchOrders(); // Refresh data setelah update estimasi
+            fetchOrders();
             showNotification('Estimasi waktu berhasil diubah', 'success');
         } catch (err) {
             console.error(err);
@@ -319,7 +317,6 @@ export default function Order() {
                                 filteredOrders.map((order, idx) => {
                                     const isDelivery = order.delivery_method === 'delivery';
                                     const methodLabel = isDelivery ? 'Antar' : 'Ambil';
-                                    // PENTING: currentPaymentStatus kini mengambil dari data order.payments
                                     const currentPaymentStatus = getPaymentStatus(order);
 
                                     const isStatusFinal = order.status === 'picked_up' || order.status === 'delivered' || order.status === 'cancel';
@@ -327,29 +324,25 @@ export default function Order() {
                                     const handleStatusChangeInRow = async (e) => {
                                         const newStatus = e.target.value;
                                         const currentOrderId = order.order_id;
-                                        // PENTING: currentOrderPaymentStatus harus dihitung ulang atau diambil dari state terbaru jika diperlukan
-                                        // Untuk kasus ini, kita bisa pakai currentPaymentStatus dari render cycle ini
                                         const currentOrderPaymentStatus = getPaymentStatus(order);
 
                                         if (isStatusFinal) {
                                             showNotification('Status pesanan sudah final dan tidak dapat diubah.', 'error');
-                                            e.target.value = order.status; // Reset dropdown value
+                                            e.target.value = order.status;
                                             return;
                                         }
 
-                                        // Validasi pembayaran untuk status 'shipped', 'delivered', 'picked_up'
                                         const requiresPaymentCompletion = ['shipped', 'delivered', 'picked_up'].includes(newStatus);
 
                                         if (requiresPaymentCompletion && currentOrderPaymentStatus === 'Belum Lunas') {
                                             showNotification('Status pembayaran belum lunas. Pesanan tidak bisa diproses ke status ini.', 'error');
-                                            e.target.value = order.status; // Reset dropdown value
+                                            e.target.value = order.status;
                                             return;
                                         }
 
-                                        // Konfirmasi untuk status final (delivered, picked_up) atau cancel
                                         if (newStatus === 'delivered' || newStatus === 'picked_up' || newStatus === 'cancel') {
                                             if (!window.confirm(`Yakin ingin mengubah status pesanan #${currentOrderId} menjadi '${statusLabels[newStatus]}'?`)) {
-                                                e.target.value = order.status; // Reset dropdown value
+                                                e.target.value = order.status; 
                                                 return;
                                             }
                                         }
@@ -377,21 +370,19 @@ export default function Order() {
                                                             ${isStatusFinal ? 'bg-gray-200 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
                                                         disabled={isStatusFinal}
                                                     >
-                                                        {/* Opsi status untuk Pengiriman (Delivery) */}
                                                         {isDelivery ? (
                                                             <>
                                                                 <option value="unpaid">{statusLabels.unpaid}</option>
-                                                                <option value="pending_fullpayment">Menunggu Pelunasan</option> {/* Tambahkan ini jika ada flow full payment */}
+                                                                <option value="pending_fullpayment">Menunggu Pelunasan</option>
                                                                 <option value="processing">{statusLabels.processing}</option>
                                                                 <option value="shipped">{statusLabels.shipped}</option>
                                                                 <option value="delivered">{statusLabels.delivered}</option>
                                                                 <option value="cancel">{statusLabels.cancel}</option>
                                                             </>
                                                         ) : (
-                                                            // Opsi status untuk Pengambilan (Pickup)
                                                             <>
                                                                 <option value="unpaid">{statusLabels.unpaid}</option>
-                                                                <option value="pending_dp">Menunggu DP</option> {/* Tambahkan ini jika ada flow DP */}
+                                                                <option value="pending_dp">Menunggu DP</option> 
                                                                 <option value="processing">{statusLabels.processing}</option>
                                                                 <option value="ready">{statusLabels.ready}</option>
                                                                 <option value="picked_up">{statusLabels.picked_up}</option>
@@ -428,7 +419,6 @@ export default function Order() {
                                                                 accept=".pdf,.doc,.docx"
                                                                 onChange={e => {
                                                                     const file = e.target.files[0];
-                                                                    // Jika file dipilih, langsung panggil handleUploadDO
                                                                     if (file) {
                                                                         handleUploadDO(order.order_id, file);
                                                                     }
@@ -442,7 +432,6 @@ export default function Order() {
                                                                 Lihat File DO
                                                             </a>
                                                         ) : (
-                                                            // Menampilkan nama file yang sedang dipilih (jika ada) atau status default
                                                             <span className="text-xs text-gray-500 truncate w-24">
                                                                 {selectedFiles[order.order_id]?.name || 'Belum ada file'}
                                                             </span>
