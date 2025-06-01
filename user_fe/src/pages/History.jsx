@@ -278,15 +278,15 @@ function History() {
 
                                                         return (
                                                             <tr key={p.payment_id} className="border-b border-gray-100 last:border-b-0 hover:bg-blue-50">
-                                                               <td className="px-4 py-3 text-center text-gray-800">{idx + 1}</td>
-                                                               <td className="px-4 py-3 text-left text-gray-800">{formatPaymentType(p.payment_type) || '-'}</td>
-                                                               <td className="px-4 py-3 text-left text-gray-800 capitalize">{p.payment_method?.replace('_', ' ') || '-'}</td>
-                                                               <td className="px-4 py-3 text-right text-gray-800">Rp {Number(p.amount).toLocaleString('id-ID')}</td>
-                                                               <td className="px-4 py-3 text-left text-gray-800">
+                                                                <td className="px-4 py-3 text-center text-gray-800">{idx + 1}</td>
+                                                                <td className="px-4 py-3 text-left text-gray-800">{formatPaymentType(p.payment_type) || '-'}</td>
+                                                                <td className="px-4 py-3 text-left text-gray-800 capitalize">{p.payment_method?.replace('_', ' ') || '-'}</td>
+                                                                <td className="px-4 py-3 text-right text-gray-800">Rp {Number(p.amount).toLocaleString('id-ID')}</td>
+                                                                <td className="px-4 py-3 text-left text-gray-800">
                                                                     <span
                                                                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusBadgeClasses(p.status, entry.order_status, p.payment_type)}`}
                                                                     >
-                                                                    {translatedPayment}
+                                                                        {translatedPayment}
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-4 py-3 text-left text-gray-800">
@@ -342,48 +342,6 @@ function History() {
                                                 )}
                                             </tbody>
                                         </table>
-                                    </div>
-
-                                    <h3 className="font-semibold text-gray-700 mb-4 mt-6 text-lg">Detail Produk:</h3>
-                                    <div className="overflow-x-auto rounded-lg border border-gray-200">
-                                        <table className="min-w-full bg-white table-auto text-sm">
-                                            <thead className="bg-gray-100">
-                                                <tr>
-                                                    <th className="px-4 py-3 text-center text-gray-700 font-semibold border-b border-gray-200">#</th>
-                                                    <th className="px-4 py-3 text-left text-gray-700 font-semibold border-b border-gray-200">Nama Produk</th>
-                                                    <th className="px-4 py-3 text-right text-gray-700 font-semibold border-b border-gray-200">Jumlah</th>
-                                                    <th className="px-4 py-3 text-right text-gray-700 font-semibold border-b border-gray-200">Harga Satuan</th>
-                                                    <th className="px-4 py-3 text-right text-gray-700 font-semibold border-b border-gray-200">Subtotal</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {entry.order_items?.length > 0 ? (
-                                                    entry.order_items.map((item, itemIdx) => (
-                                                        <tr key={item.product_id} className="border-b border-gray-100 last:border-b-0 hover:bg-blue-50">
-                                                            <td className="px-4 py-3 text-center text-gray-800">{itemIdx + 1}</td>
-                                                            <td className="px-4 py-3 text-left text-gray-800">{item.product_name}</td>
-                                                            <td className="px-4 py-3 text-right text-gray-800">{item.quantity}</td>
-                                                            <td className="px-4 py-3 text-right text-gray-800">Rp {Number(item.price).toLocaleString('id-ID')}</td>
-                                                            <td className="px-4 py-3 text-right text-gray-800">Rp {Number(item.quantity * item.price).toLocaleString('id-ID')}</td>
-                                                        </tr>
-                                                    ))
-                                                ) : (
-                                                    <tr>
-                                                        <td colSpan="5" className="px-4 py-3 text-center text-gray-500">
-                                                            Tidak ada produk dalam pesanan ini.
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div className="mt-6 flex justify-end">
-                                        <button
-                                            onClick={() => navigate(`/order-detail/${entry.order_id}`)}
-                                            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium transition-colors duration-200 shadow-md"
-                                        >
-                                            Lihat Detail Pesanan
-                                        </button>
                                     </div>
                                 </div>
                             );
