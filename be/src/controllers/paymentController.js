@@ -149,11 +149,11 @@ const getAllPayments = async (req, res) => {
       p.created_at,
       p.verified_at,
       p.due_date,
-      u.shop_name,
-      o.status AS order_status,
-      o.total_price
+      COALESCE(u.shop_name, '-') AS shop_name,
+      COALESCE(o.status, '-') AS order_status,
+      COALESCE(o.total_price, 0) AS total_price
     FROM payment p
-    JOIN user u ON p.user_id = u.user_id
+    LEFT JOIN user u ON p.user_id = u.user_id
     LEFT JOIN \`order\` o ON p.order_id = o.order_id
   `;
 
@@ -167,16 +167,9 @@ const getAllPayments = async (req, res) => {
   query += ` ORDER BY p.created_at DESC `;
 
   try {
-    const result = await db.execute(query, params);
+    const [rows] = await db.execute(query, params);
 
-    if (!result || !Array.isArray(result) || !Array.isArray(result[0])) {
-      console.error('db.execute tidak mengembalikan hasil yang valid:', result);
-      return res.status(500).json({ error: 'Hasil query tidak valid' });
-    }
-
-    const rows = result[0];
-
-    if (rows.length === 0) {
+    if (!rows || rows.length === 0) {
       return res.status(404).json({ error: 'Tidak ada data pembayaran' });
     }
 
@@ -446,7 +439,7 @@ const createInvoiceSettlement = async (req, res) => {
   try {
     const { order_id, due_date } = req.body;
     const [orders] = await db.query(
-      'SELECT total_price, user_id FROM `order` WHERE order_id = ?',
+      'SELECT total_price, user_id FROM \`order\` WHERE order_id = ?',
       [order_id]
     );
 
