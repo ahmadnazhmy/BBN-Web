@@ -106,7 +106,7 @@ const getOrderDetailByPaymentId = async (req, res) => {
 
     const [orders] = await db.execute(
       `SELECT o.order_id, o.user_id, o.delivery_method, o.location, o.total_price,
-              o.status, o.order_date, o.do_file_url, u.shop_name
+              o.status, o.order_date, o.file_delivery_order, u.shop_name
          FROM \`order\` o
          JOIN user u ON o.user_id = u.user_id
          WHERE o.order_id = ? AND o.user_id = ?`,
