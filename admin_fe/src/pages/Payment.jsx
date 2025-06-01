@@ -1,86 +1,265 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { faChevronDown, faEye } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faFileInvoiceDollar, faFile, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { getYear, getMonth } from 'date-fns';
+import { getYear, getMonth, format } from 'date-fns';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { id } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 function Payment() {
   const [payments, setPayments] = useState([]);
   const [filteredPayments, setFilteredPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [message, setMessage] = useState(null);
+  const [notification, setNotification] = useState({ message: '', type: '' });
   const [filterMonthYear, setFilterMonthYear] = useState(null);
   const [totalAmount, setTotalAmount] = useState(0);
 
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [orderDetail, setOrderDetail] = useState(null);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    customerName: '',
+    dueDate: '',
+    totalAmount: 0,
+  });
+
+  const PaymentType = {
+    DOWNPAYMENT: 'downpayment',
+    FULLPAYMENT: 'fullpayment',
+    SETTLEMENT: 'settlement',
+  };
+
+  const formatPaymentType = (type) => {
+    switch (type) {
+      case PaymentType.SETTLEMENT:
+        return 'Pelunasan DP';
+      case PaymentType.DOWNPAYMENT:
+        return 'Bayar DP';
+      case PaymentType.FULLPAYMENT:
+        return 'Lunas';
+      default:
+        return 'Tipe Pembayaran Lainnya';
+    }
+  };
+
+  const formatPaymentMethod = (method) => {
+    if (!method) return '-';
+    return method
+      .replace(/_/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
+  const notificationTimeout = useRef(null);
+  const location = useLocation();
+  const initialPaymentId = location.state?.paymentId;
+  const backendURL = process.env.REACT_APP_BACKEND_URL || 'https://bbn-web-production.up.railway.app';
+  const cloudinaryCloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || 'dohxnnnby'; 
+
+  const showNotification = useCallback((msg, type = 'success', duration = 3000) => {
+    setNotification({ message: msg, type });
+    if (notificationTimeout.current) clearTimeout(notificationTimeout.current);
+    notificationTimeout.current = setTimeout(() => {
+      setNotification({ message: '', type: '' });
+    }, duration);
+  }, []);
+
+  useEffect(() => {
+    if (showInvoiceModal && selectedPayment && orderDetail) {
+      const totalOrder = orderDetail.order.total_price;
+      const amountPaid = selectedPayment.amount;
+
+      let remainingAmount = 0;
+      if (selectedPayment.payment_type === PaymentType.DOWNPAYMENT) {
+        remainingAmount = totalOrder - amountPaid;
+      } else {
+        remainingAmount = 0;
+      }
+
+      setFormData({
+        customerName: orderDetail.order.shop_name || '',
+        dueDate: format(new Date(), 'yyyy-MM-dd'),
+        totalAmount: remainingAmount,
+      });
+
+      setSelectedOrderId(selectedPayment.order_id);
+    } else {
+      setFormData({
+        customerName: '',
+        dueDate: '',
+        totalAmount: 0,
+      });
+      setSelectedOrderId(null);
+    }
+  }, [showInvoiceModal, selectedPayment, orderDetail, PaymentType.DOWNPAYMENT]);
+
+  useEffect(() => {
+    const fetchOrderDetails = async (orderId) => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        const res = await fetch(`${backendURL}/api/admin/order/${orderId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) throw new Error('Gagal mengambil detail order');
+        const data = await res.json();
+        setOrderDetail(data);
+      } catch (err) {
+        console.error('Error fetching order details:', err);
+      }
+    };
+
+    if (showInvoiceModal && selectedPayment) {
+      fetchOrderDetails(selectedPayment.order_id);
+    }
+  }, [showInvoiceModal, selectedPayment, backendURL]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!selectedOrderId) {
+      showNotification('Error: Order ID tidak ditemukan untuk membuat invoice.', 'error');
+      return;
+    }
+    setLoadingSubmit(true);
+
+    try {
+      const token = localStorage.getItem('adminToken');
+
+      const payload = {
+        order_id: selectedOrderId,
+        payment_type: PaymentType.FULLPAYMENT,
+        due_date: formData.dueDate,
+      };
+
+      const res = await fetch(`${backendURL}/api/admin/payment/invoice-settlement`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Gagal membuat invoice pelunasan.');
+      }
+
+      const newPayment = await res.json();
+      console.log('New full payment invoice created:', newPayment);
+
+      showNotification('Invoice pelunasan berhasil dibuat!', 'success');
+      onCloseInvoiceModal();
+      fetchPayments();
+    } catch (err) {
+      console.error('Error submitting invoice:', err);
+      showNotification(`Gagal membuat invoice pelunasan: ${err.message}`, 'error');
+    } finally {
+      setLoadingSubmit(false);
+    }
+  };
+
   const statusLabels = {
+    dp_paid: 'DP Dibayar',
     pending: 'Verifikasi',
     completed: 'Berhasil',
     failed: 'Gagal',
+    cancelled: 'Dibatalkan',
+  };
+
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'completed':
+      case 'dp_paid':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'failed':
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   useEffect(() => {
-  let result = payments;
+    let result = payments;
+    if (filterMonthYear) {
+      const selectedMonth = filterMonthYear.getMonth();
+      const selectedYear = filterMonthYear.getFullYear();
 
-  if (filterMonthYear) {
-    const selectedYear = getYear(filterMonthYear);
-    const selectedMonth = getMonth(filterMonthYear) + 1;
+      result = payments.filter((p) => {
+        const paymentDate = new Date(p.created_at);
+        return (
+          paymentDate.getMonth() === selectedMonth &&
+          paymentDate.getFullYear() === selectedYear
+        );
+      });
+    }
+    setFilteredPayments(result);
 
-    result = result.filter(p => {
-      const paymentDate = new Date(p.created_at);
-      const paymentYear = paymentDate.getFullYear();
-      const paymentMonth = paymentDate.getMonth() + 1;
-
-      return paymentYear === selectedYear && paymentMonth === selectedMonth;
-    });
-  }
-
-  setFilteredPayments(result); // semua status tetap tampil
-
-  // total hanya yang status completed
-  const total = result
-    .filter(p => p.status === 'completed')
-    .reduce((sum, payment) => sum + payment.amount, 0);
-  setTotalAmount(total);
-}, [payments, filterMonthYear]);
+    const total = result
+      .filter((p) => p.status === 'completed' || p.status === 'dp_paid')
+      .reduce((sum, payment) => sum + (payment.total_price || 0), 0);
+    setTotalAmount(total);
+  }, [payments, filterMonthYear]);
 
   useEffect(() => {
     fetchPayments();
+    return () => {
+      if (notificationTimeout.current) clearTimeout(notificationTimeout.current);
+    };
   }, [filterMonthYear]);
 
   const fetchPayments = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const token = localStorage.getItem('adminToken');
-      const query = new URLSearchParams();
-  
+
+      let query = new URLSearchParams();
       if (filterMonthYear) {
-        const month = filterMonthYear.getMonth() + 1;
-        const year = filterMonthYear.getFullYear();
-        query.append('month', month);
-        query.append('year', year);
+        query.append('month', filterMonthYear.getMonth() + 1);
+        query.append('year', filterMonthYear.getFullYear());
       }
-  
-      const res = await fetch(`https://bbn-web-production.up.railway.app/api/admin/payment?${query.toString()}`, {
+
+      const url = `${backendURL}/api/admin/payment${query.toString() ? '?' + query.toString() : ''}`;
+
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
-  
+
       if (!res.ok) throw new Error('Gagal mengambil data pembayaran');
       const data = await res.json();
       setPayments(data);
     } catch (err) {
       console.error(err);
-      setError('Terjadi kesalahan');
+      setError('Terjadi kesalahan saat mengambil data.');
+      showNotification('Terjadi kesalahan saat mengambil data.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  const hasFullPayment = (orderId) => {
+    return payments.some((p) => p.order_id === orderId && p.payment_type === PaymentType.FULLPAYMENT && p.status === 'completed');
+  };
+
   const updateStatus = async (paymentId, newStatus) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`https://bbn-web-production.up.railway.app/api/admin/payment/${paymentId}/status`, {
+      const res = await fetch(`${backendURL}/api/admin/payment/${paymentId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -89,20 +268,22 @@ function Payment() {
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error('Gagal mengubah status');
-      setPayments(prev => prev.map(p => p.payment_id === paymentId ? { ...p, status: newStatus } : p));
+
+      setPayments((prev) =>
+        prev.map((p) => (p.payment_id === paymentId ? { ...p, status: newStatus } : p))
+      );
       const label = statusLabels[newStatus] || newStatus;
-      setMessage(`Status berhasil diubah menjadi "${label}"`);
+      showNotification(`Status berhasil diubah menjadi "${label}"`, 'success');
     } catch (err) {
       console.error(err);
-      setMessage('Gagal mengubah status.');
+      showNotification('Gagal mengubah status.', 'error');
     }
-    setTimeout(() => setMessage(null), 3000);
   };
 
   const updateMessage = async (paymentId, newMessage) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`https://bbn-web-production.up.railway.app/api/admin/payment/${paymentId}/message`, {
+      const res = await fetch(`${backendURL}/api/admin/payment/${paymentId}/message`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -111,156 +292,321 @@ function Payment() {
         body: JSON.stringify({ message: newMessage }),
       });
       if (!res.ok) throw new Error('Gagal memperbarui pesan');
-      setMessage('Pesan berhasil diperbarui.');
+      showNotification('Pesan berhasil diperbarui.', 'success');
     } catch (err) {
       console.error(err);
-      setMessage('Gagal memperbarui pesan.');
+      showNotification('Gagal memperbarui pesan.', 'error');
     }
-    setTimeout(() => setMessage(null), 3000);
   };
 
-  if (loading) return <div className="p-6">Memuat...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
+  const openInvoiceModal = (payment) => {
+    setSelectedPayment(payment);
+    setSelectedOrderId(payment.order_id);
+    setShowInvoiceModal(true);
+  };
+
+  const onCloseInvoiceModal = () => {
+    setShowInvoiceModal(false);
+    setSelectedPayment(null);
+    setOrderDetail(null);
+    setSelectedOrderId(null);
+    setFormData({
+      customerName: '',
+      dueDate: '',
+      totalAmount: 0,
+    });
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text('Laporan Pembayaran', 14, 20);
+
+    const tableData = filteredPayments.map((p, index) => [
+      index + 1,
+      p.order_id,
+      p.shop_name,
+      `Rp ${p.amount.toLocaleString('id-ID')}`,
+      formatPaymentType(p.payment_type),
+      formatPaymentMethod(p.payment_method),
+      statusLabels[p.status] || p.status,
+      format(new Date(p.created_at), 'dd/MM/yyyy', { locale: id }),
+    ]);
+
+    autoTable(doc, {
+      startY: 30,
+      head: [['No', 'ID Pesanan', 'Nama Toko', 'Jumlah', 'Tipe Pembayaran', 'Metode Pembayaran', 'Status', 'Tanggal Dibuat']],
+      body: tableData,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] },
+    });
+
+    doc.save('laporan-pembayaran.pdf');
+    showNotification('Laporan PDF berhasil diunduh.', 'success');
+  };
+
+  if (loading) return <div className="p-6 text-center text-lg text-gray-600">Memuat data pembayaran...</div>;
+  if (error) return <div className="p-6 text-center text-red-500 text-lg">Error: {error}</div>;
 
   return (
-    <div className="p-6 md:px-6 md:py-6 flex flex-col h-full">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold py-2">Data Pembayaran</h1>
-        <div className="flex gap-4 flex-wrap items-center">
-        <div className="flex items-center z-20 flex-row-reverse">
-          <DatePicker
-            selected={filterMonthYear}
-            onChange={date => setFilterMonthYear(date)}
-            dateFormat="MM/yyyy"
-            showMonthYearPicker
-            className="bg-white text-center border border-gray-300 text-sm px-4 py-2 rounded-xs w-[110px]"
-            placeholderText="Pilih Bulan"
-            locale={id}
-          />
-          {filterMonthYear && (
+    <div className="px-6 pt-6 flex flex-col h-full bg-gray-50">
+      <div className="p-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold text-gray-800">Daftar Pembayaran</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3">
+              <DatePicker
+                selected={filterMonthYear}
+                onChange={date => setFilterMonthYear(date)}
+                dateFormat="MM/yyyy"
+                showMonthYearPicker
+                className="bg-white text-center border border-gray-300 text-sm px-4 py-2 rounded-md w-[120px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholderText="Pilih Bulan"
+                locale={id}
+              />
+              {filterMonthYear && (
+                <button
+                  onClick={() => setFilterMonthYear(null)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-3 py-2 rounded-md transition-colors"
+                >
+                  Tampil Semua
+                </button>
+              )}
+            </div>
+            <div className="flex items-center justify-center bg-white border border-gray-300 rounded-md px-4 py-2 text-sm text-gray-800 font-semibold">
+              Total: Rp {totalAmount.toLocaleString('id-ID')}
+            </div>
             <button
-              onClick={() => setFilterMonthYear(null)}
-              className={`text-sm px-4 py-2 rounded-xs transition-opacity duration-200 mr-4
-                ${filterMonthYear ? 'bg-blue-800 hover:bg-blue-900 text-white' : 'opacity-0 pointer-events-none'}`}
+              onClick={handleExportPDF}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md transition-colors shadow"
             >
-              Tampil Semua
+              <FontAwesomeIcon icon={faFile} className="mr-2" /> Ekspor PDF
             </button>
-          )}
+          </div>
         </div>
-        <div className="flex items-center justify-center bg-white border border-gray-300 rounded-xs px-4 py-2 text-sm">
-          <span className="font-semibold">Total:</span>
-          <span className="ml-2">Rp {totalAmount.toLocaleString()}</span>
-        </div>
-        </div>
-        
+        {notification.message && (
+          <div className={`mt-4 px-4 py-2 rounded-md text-sm ${
+            notification.type === 'success' ? 'text-green-800 bg-green-100' : 'text-red-800 bg-red-100'
+          }`}>
+            {notification.message}
+          </div>
+        )}
       </div>
 
-      <div className="overflow-hidden bg-white rounded-xs">
-        <div className="max-h-[85vh] overflow-y-auto">
-        <table className="min-w-full table-auto text-sm">
-          <thead className="bg-gray-100 sticky top-0 z-10">
-            <tr>
-              {['No', 'ID', 'Nama Toko', 'Jumlah', 'Status', 'Pesan', 'Tanggal', 'Terverikasi', 'Bukti'].map(h => (
-                <th key={h} className="px-4 py-3 border-b border-gray-300 text-left">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPayments.length === 0 ? (
+      <div className="bg-white rounded-lg shadow-sm flex-grow overflow-hidden">
+        <div className="max-h-[80vh] overflow-auto">
+          <table className="w-full text-sm text-gray-700">
+            <thead className="bg-gray-100 sticky top-0 border-b border-gray-200">
               <tr>
-                <td
-                  colSpan="9"
-                  className="text-center py-6 text-gray-500 border-b border-gray-300"
-                >
-                  Tidak ada pembayaran
-                </td>
+                {[
+                  'No',
+                  'ID Pesanan',
+                  'Nama Toko',
+                  'Jumlah',
+                  'Tipe Pembayaran',
+                  'Metode Pembayaran',
+                  'Status',
+                  'Pesan Gagal',
+                  'Tanggal Dibuat',
+                  'Tanggal Verifikasi',
+                  'Jatuh Tempo',
+                  'Invoice',
+                  'Aksi',
+                ].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-gray-700">
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ) : (
-              filteredPayments.map((p, idx) => (
-                <tr key={p.payment_id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 border-b border-gray-300">{idx + 1}</td>
-                  <td className="px-4 py-3 border-b border-gray-300">{p.order_id}</td>
-                  <td className="px-4 py-3 border-b border-gray-300">{p.shop_name}</td>
-                  <td className="px-4 py-3 border-b border-gray-300">Rp {p.amount.toLocaleString()}</td>
-                  <td className="px-4 py-3 border-b border-gray-300">
-                    <div className="relative">
-                      <select
-                        value={p.status}
-                        onChange={e => updateStatus(p.payment_id, e.target.value)}
-                        className="bg-white border border-gray-300 rounded-xs px-4 py-2 pr-8 text-sm appearance-none w-full"
-                      >
-                        <option value="pending">Verifikasi</option>
-                        <option value="completed">Berhasil</option>
-                        <option value="failed">Gagal</option>
-                      </select>
-                      <FontAwesomeIcon
-                        icon={faChevronDown}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-                      />
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-300">
-                    {p.status === 'failed' ? (
-                      <textarea
-                        className="w-full border border-gray-300 rounded p-2"
-                        rows="3"
-                        value={p.message || ''}
-                        onChange={(e) => {
-                          const updatedMessage = e.target.value;
-                          setPayments(prevPayments =>
-                            prevPayments.map(payment =>
-                              payment.payment_id === p.payment_id
-                                ? { ...payment, message: updatedMessage }
-                                : payment
-                            )
-                          );
-                          updateMessage(p.payment_id, updatedMessage);
-                        }}
-                        placeholder="Tulis pesan untuk pengguna..."
-                      />
-                    ) : (
-                      <span className="text-gray-500">Tidak ada pesan</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-300">
-                    {new Date(p.created_at).toLocaleDateString('id-ID', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-300">
-                    {p.verified_at 
-                      ? new Date(p.verified_at).toLocaleDateString('id-ID', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })
-                      : 'Belum Terverifikasi'}
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-300">
-                    {p.proof_of_payment ? (
-                      <a
-                        href={p.proof_of_payment} 
-                        rel="noopener noreferrer"
-                        className="text-white"
-                      >
-                        <button className="bg-blue-800 text-xs w-8 h-8 rounded-xs hover:bg-blue-900 transition-colors">
-                          <FontAwesomeIcon icon={faEye} />
-                        </button>
-                      </a>
-                    ) : (
-                      'Belum ada'
-                    )}
+            </thead>
+            <tbody>
+              {filteredPayments.length === 0 ? (
+                <tr>
+                  <td colSpan="14" className="text-center py-8 text-gray-500">
+                    Tidak ada pembayaran ditemukan.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredPayments.map((p, idx) => {
+                  const showCreateInvoiceButton = p.status === 'dp_paid' && !hasFullPayment(p.order_id);
+                  const isStatusDisabled = p.status === 'failed' || p.status === 'cancelled' || p.status === 'completed';
 
+                  return (
+                    <tr key={p.payment_id} className="border-b border-gray-200 even:bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <td className="px-4 py-3">{idx + 1}</td>
+                      <td className="px-4 py-3 font-semibold text-gray-900">{p.order_id}</td>
+                      <td className="px-4 py-3">{p.shop_name}</td>
+                      <td className="px-4 py-3 font-bold text-gray-900">
+                        Rp {(p.amount || 0).toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-4 py-3 text-center">{formatPaymentType(p.payment_type)}</td>
+                      <td className="px-4 py-3 text-center text-gray-600">
+                        {p.payment_method ? formatPaymentMethod(p.payment_method) : <i className='text-gray-400'>Belum ada pembayaran</i>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="relative">
+                          <select
+                            className={`bg-white border border-gray-300 rounded-md px-2 py-1 pr-8 text-xs appearance-none w-full
+                              ${isStatusDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
+                            value={p.status}
+                            onChange={(e) => updateStatus(p.payment_id, e.target.value)}
+                            disabled={isStatusDisabled}
+                          >
+                            <option value="pending">{statusLabels.pending}</option>
+                            {p.payment_type === PaymentType.DOWNPAYMENT ? (
+                              <option value="dp_paid">{statusLabels.dp_paid}</option>
+                            ) : (
+                              <option value="completed">{statusLabels.completed}</option>
+                            )}
+                            <option value="failed">{statusLabels.failed}</option>
+                            <option value="cancelled">{statusLabels.cancelled}</option>
+                          </select>
+                          <FontAwesomeIcon
+                            icon={faChevronDown}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                          />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {p.status === 'failed' ? (
+                          <>
+                            <textarea
+                              key={p.payment_id}
+                              rows={2}
+                              value={p.message || ''}
+                              placeholder="Masukkan pesan..."
+                              className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              onChange={(e) => {
+                                setPayments(prev => prev.map(payment =>
+                                  payment.payment_id === p.payment_id ? { ...payment, message: e.target.value } : payment
+                                ));
+                              }}
+                            />
+                            <button
+                              onClick={() => updateMessage(p.payment_id, p.message)}
+                              className="mt-1 px-2 py-1 bg-blue-500 text-white rounded-md text-xs hover:bg-blue-600 transition-colors"
+                            >
+                              Simpan Pesan
+                            </button>
+                          </>
+                        ) : (
+                          <i className='text-gray-400'>Tidak tersedia</i>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {format(new Date(p.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {p.verified_at
+                          ? format(new Date(p.verified_at), 'dd MMM yyyy HH:mm', { locale: id })
+                          : <i className='text-gray-400'>Belum diverifikasi</i>}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {p.due_date ? format(new Date(p.due_date), 'dd MMM yyyy', { locale: id }) : <i className='text-gray-400'>Tidak ada</i>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => navigate(`/invoice?payment_id=${p.payment_id}`)}
+                          className="text-white px-2 py-1 rounded-md text-xs bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm"
+                          title="Lihat Invoice"
+                        >
+                          Lihat Invoice
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {showCreateInvoiceButton && (
+                          <button
+                            onClick={() => openInvoiceModal(p)}
+                            className="text-white px-3 py-2 rounded-md text-xs bg-purple-600 hover:bg-purple-700 whitespace-nowrap transition-colors shadow-sm"
+                            title="Buat Invoice Pelunasan Manual"
+                          >
+                            <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" />
+                            Buat Invoice
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
+
+      {showInvoiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg md:max-w-xl w-full relative p-6">
+            <div className="flex justify-between items-center mb-6 border-b pb-3">
+              <h3 className="text-xl md:text-2xl font-bold text-gray-800">Buat Invoice Pelunasan</h3>
+              <button onClick={onCloseInvoiceModal} className="text-gray-500 hover:text-gray-800 transition-colors">
+                <FontAwesomeIcon icon={faXmark} className='text-xl md:text-3xl' />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="customerName" className="block text-sm font-medium text-gray-700">
+                  Nama Toko / Pelanggan
+                </label>
+                <input
+                  type="text"
+                  id="customerName"
+                  name="customerName"
+                  value={formData.customerName}
+                  readOnly
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="totalAmount" className="block text-sm font-medium text-gray-700">
+                  Jumlah Pelunasan
+                </label>
+                <input
+                  type="text"
+                  value={`Rp ${formData.totalAmount.toLocaleString('id-ID')}`}
+                  readOnly
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
+                  Jatuh Tempo Invoice
+                </label>
+                <input
+                  type="date"
+                  id="dueDate"
+                  name="dueDate"
+                  value={formData.dueDate}
+                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  required
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={onCloseInvoiceModal}
+                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                  disabled={loadingSubmit}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                  disabled={loadingSubmit}
+                >
+                  {loadingSubmit ? 'Mengirim...' : 'Buat Invoice'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

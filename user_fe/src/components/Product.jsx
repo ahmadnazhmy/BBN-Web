@@ -1,146 +1,200 @@
-import React, { useState, useEffect } from 'react'
-import axios from 'axios'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronDown, faMinus, faPlus } from '@fortawesome/free-solid-svg-icons'
-import Catalog from './Catalog'
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import Catalog from './Catalog';
 
 const Product = () => {
-  const [productName, setProductName] = useState('')
-  const [products, setProducts] = useState([])
-  const [quantities, setQuantities] = useState({})
-  const isLoggedIn = !!localStorage.getItem('token')
+    const [productName, setProductName] = useState('');
+    const [products, setProducts] = useState([]);
+    const [quantities, setQuantities] = useState({});
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const isLoggedIn = !!localStorage.getItem('token');
 
-  async function fetchProducts() {
-  try {
-    let url = 'https://bbn-web-production.up.railway.app/api/product'
-    if (productName) {
-      const params = new URLSearchParams()
-      params.append('product_name', productName)
-      url += `?${params.toString()}`
+    async function fetchProducts() {
+        setLoading(true);
+        setError(null);
+        try {
+            let url = 'https://bbn-web-production.up.railway.app/api/product';
+            if (productName) {
+                const params = new URLSearchParams();
+                params.append('product_name', productName);
+                url += `?${params.toString()}`;
+            }
+
+            const res = await fetch(url);
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            const data = await res.json();
+            setProducts(data);
+            const initQty = {};
+            data.forEach((p) => {
+                initQty[p.product_id] = 1;
+            });
+            setQuantities(initQty);
+        } catch (err) {
+            console.error('Gagal fetch produk:', err);
+            setError('Gagal memuat produk. Silakan coba lagi nanti.');
+        } finally {
+            setLoading(false);
+        }
     }
 
-    const res = await fetch(url)
-    const data = await res.json()
-    setProducts(data)
-    const initQty = {}
-    data.forEach(p => { initQty[p.product_id] = 1 })
-    setQuantities(initQty)
-  } catch (err) {
-    console.error('Gagal fetch produk:', err)
-  }
-}
+    useEffect(() => {
+        fetchProducts();
+    }, [productName]);
 
-  useEffect(() => {
-    fetchProducts()
-  }, [productName])
+    const handleAddToCart = async (p) => {
+        if (!isLoggedIn) {
+            alert('Silakan login untuk menambahkan produk ke keranjang.');
+            return;
+        }
+        const qty = quantities[p.product_id];
+        if (!qty || qty < 1) {
+            alert('Jumlah produk harus lebih dari 0.');
+            return;
+        }
 
-  const inc = id => setQuantities(q => ({ ...q, [id]: q[id] + 1 }))
-  const dec = id => setQuantities(q => ({ ...q, [id]: Math.max(q[id] - 1, 1) }))
+        try {
+            await axios.post(
+                'https://bbn-web-production.up.railway.app/api/cart',
+                {
+                    productId: p.product_id,
+                    quantity: qty,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                }
+            );
 
-  const handleAddToCart = async p => {
-    const qty = quantities[p.product_id]
-    if (p.stock < qty) {
-      return alert(`Stok tidak cukup! (${p.stock} tersisa)`)
-    }
-    try {
-      await axios.post('https://bbn-web-production.up.railway.app/api/cart', {
-        productId: p.product_id,
-        quantity: qty,
-      })
-      const key = `cart_${localStorage.getItem('user_id')}`
-      const cart = JSON.parse(localStorage.getItem(key)) || []
-      const idx = cart.findIndex(i => i.product_id === p.product_id)
-      if (idx >= 0) cart[idx].quantity += qty
-      else cart.push({ ...p, quantity: qty })
-      localStorage.setItem(key, JSON.stringify(cart))
-      alert(`Berhasil menambahkan ${qty} × ${p.product_name}`)
-    } catch {
-      alert('Gagal menambahkan ke keranjang')
-    }
-  }
+            const key = `cart_${localStorage.getItem('user_id')}`;
+            const cart = JSON.parse(localStorage.getItem(key)) || [];
+            const idx = cart.findIndex((item) => item.product_id === p.product_id);
+            if (idx >= 0) {
+                cart[idx].quantity = (cart[idx].quantity || 0) + qty;
+            } else {
+                cart.push({ ...p, quantity: qty });
+            }
+            localStorage.setItem(key, JSON.stringify(cart));
+            alert(`Berhasil menambahkan ${qty}x ${p.product_name} ke keranjang!`);
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            alert('Gagal menambahkan ke keranjang. Silakan coba lagi.');
+        }
+    };
 
-  return (
-    <div className="p-4 md:px-24 md:py-16">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h1 className="text-xl md:text-2xl font-bold">Cari Produk Kami</h1>
-        <div className="relative w-full md:w-48">
-          <select
-            className="w-full appearance-none border border-gray-300 rounded-xs px-4 py-2 bg-white"
-            value={productName}
-            onChange={e => setProductName(e.target.value)}
-          >
-            <option value="">Pilih produk</option>
-            <option value="CNP (KANAL C)">CNP (Kanal C)</option>
-            <option value="Reng">Reng</option>
-            <option value="Spandek">Spandek</option>
-            <option value="Bondek">Bondek</option>
-            <option value="Flatseat">Flatseat</option>
-            <option value="Nok C">Nok C</option>
-            <option value="Hollow">Hollow</option>
-            <option value="Genteng Metal">Genteng Metal</option>
-            <option value="Talang Juray">Talang Juray</option>
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-            <FontAwesomeIcon icon={faChevronDown} />
-          </div>
-        </div>
-      </div>
+    const handleQtyChange = (productId, value) => {
+        const parsedValue = parseInt(value, 10);
+        if (isNaN(parsedValue) || parsedValue < 1) {
+            setQuantities((prev) => ({ ...prev, [productId]: 1 })); 
+            return;
+        }
+        setQuantities((prev) => ({ ...prev, [productId]: parsedValue }));
+    };
 
-      <Catalog onSelectProduct={setProductName} />
-
-      <div className="mt-8">
-        {productName === '' ? (
-          <p className="text-center text-gray-500">
-            Silakan pilih barang untuk melihat produk lengkap.
-          </p>
-        ) : (
-          <div className="space-y-6">
-            {products.map(p => (
-              <div
-                key={p.product_id}
-                className="border border-gray-200 rounded-xs p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-              >
-                <div className="flex-1">
-                  <h2 className="font-bold text-base md:text-lg">
-                    {p.product_name} {p.type}, Tebal {p.thick}, {p.avg_weight_per_stick} Kg
-                  </h2>
-                  {isLoggedIn && (
-                    <p className="mt-1 text-sm text-gray-600">Stok: {p.stock}</p>
-                  )}
-                </div>
-                {isLoggedIn ? (
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold whitespace-nowrap">
-                      Rp{p.unit_price.toLocaleString()}
-                    </span>
-                    <div className="flex items-center border border-gray-300 rounded-xs">
-                      <button onClick={() => dec(p.product_id)} className="px-3 py-1">
-                        <FontAwesomeIcon icon={faMinus} />
-                      </button>
-                      <span className="px-3">{quantities[p.product_id]}</span>
-                      <button onClick={() => inc(p.product_id)} className="px-3 py-1">
-                        <FontAwesomeIcon icon={faPlus} />
-                      </button>
+    return (
+        <div className="bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-6xl mx-auto">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                    <h1 className="text-xl md:text-2xl text-center md:text-left font-bold text-gray-900 leading-tight">Jelajahi Produk Kami</h1>
+                    <div className="relative w-full md:w-64">
+                        <select
+                            className="block w-full px-4 py-2 pr-10 text-base text-gray-800 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 appearance-none transition-all duration-200 ease-in-out"
+                            value={productName}
+                            onChange={(e) => setProductName(e.target.value)}
+                        >
+                            <option value="">Pilih Kategori Produk</option>
+                            <option value="CNP (KANAL C)">CNP (Kanal C)</option>
+                            <option value="Reng">Reng</option>
+                            <option value="Spandek">Spandek</option>
+                            <option value="Bondek">Bondek</option>
+                            <option value="Flatseat">Flatseat</option>
+                            <option value="Nok C">Nok C</option>
+                            <option value="Hollow">Hollow</option>
+                            <option value="Genteng Metal">Genteng Metal</option>
+                            <option value="Talang Juray">Talang Juray</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
+                            <FontAwesomeIcon icon={faChevronDown} className="h-5 w-5" />
+                        </div>
                     </div>
-                    <button
-                      onClick={() => handleAddToCart(p)}
-                      className="whitespace-nowrap bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-xs"
-                    >
-                      Tambah
-                    </button>
-                  </div>
-                ) : (
-                  <p className="italic text-gray-400">
-                    Login untuk lihat harga & stok
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+                </div>
 
-export default Product
+                <Catalog />
+
+                <div className="mt-8">
+                    {loading ? (
+                        <p className="text-center text-gray-600 text-lg">Memuat produk...</p>
+                    ) : error ? (
+                        <p className="text-center text-red-600 text-lg">{error}</p>
+                    ) : productName === '' ? (
+                        <p className="text-center text-gray-500 text-lg">
+                            Silakan pilih kategori produk di atas untuk melihat daftar lengkap produk.
+                        </p>
+                    ) : products.length === 0 ? (
+                        <p className="text-center text-gray-500 text-lg">
+                            Tidak ada produk ditemukan untuk kategori "{productName}".
+                        </p>
+                    ) : (
+                        <>
+                            {!isLoggedIn && (
+                                <p className="text-center italic text-gray-500 text-base mb-6">
+                                    Silakan login untuk melihat harga dan menambah ke keranjang.
+                                </p>
+                            )}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {products.map((p) => (
+                                    <div
+                                        key={p.product_id}
+                                        className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 sm:p-5 flex flex-col justify-between hover:shadow-md transition-shadow duration-200 ease-in-out"
+                                    >
+                                        <div>
+                                            <h2 className="font-bold text-base sm:text-lg text-gray-900 mb-2 leading-snug">
+                                                {p.product_name} {p.type}, Tebal {p.thick}, {p.avg_weight_per_stick} Kg
+                                            </h2>
+                                        </div>
+
+                                        {isLoggedIn ? (
+                                            <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between sm:justify-between gap-3 sm:gap-4">
+                                                <span className="font-extrabold text-lg sm:text-xl text-blue-700 whitespace-nowrap">
+                                                    Rp{Number(p.unit_price).toLocaleString('id-ID')}
+                                                </span>
+                                                <div className="flex items-center gap-2"> 
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        value={quantities[p.product_id] || 1}
+                                                        onChange={(e) => handleQtyChange(p.product_id, e.target.value)}
+                                                        className="w-16 px-2 py-1.5 border border-gray-300 rounded-md text-center text-gray-800 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleAddToCart(p)}
+                                                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded-md shadow-sm transition-colors duration-200 ease-in-out text-sm"
+                                                    >
+                                                        Tambah
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+                                                <p className="italic text-gray-500 text-base">
+                                                    Harga tidak tersedia.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Product;

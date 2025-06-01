@@ -134,7 +134,7 @@ const adminLogin = async (req, res) => {
     const token = jwt.sign(
       { id: admin.admin_id, admin_id: admin.admin_id },
       'RAHASIA',
-      { expiresIn: '1h' }
+      { expiresIn: '7d' }
     );
 
     res.status(200).json({

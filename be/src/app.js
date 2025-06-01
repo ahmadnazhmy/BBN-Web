@@ -19,7 +19,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
-  console.log('Request Origin:', req.headers.origin);
   next();
 });
 
@@ -27,6 +26,7 @@ const allowedOrigins = [
   'https://bbn-web-ahmad-nazhmy-zahrians-projects.vercel.app',
   'https://bbn-web-i9wq.vercel.app',
   'http://localhost:5173',
+  'http://localhost:5174',
 ];
 
 const corsOptions = {

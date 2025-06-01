@@ -1,10 +1,8 @@
-const db = require('../config/db')
-const path = require('path')
-const fs = require('fs')
+const db = require('../config/db');
 
 function getJakartaDateTime() {
   const now = new Date();
-  const offset = 7 * 60 * 60 * 1000; 
+  const offset = 7 * 60 * 60 * 1000;
   return new Date(now.getTime() + offset)
     .toISOString()
     .slice(0, 19)
@@ -12,271 +10,334 @@ function getJakartaDateTime() {
 }
 
 const checkout = async (req, res) => {
-  const { method, location, cart } = req.body
-  const user_id = req.user.id
-
-  if (!cart || cart.length === 0) {
-    return res.status(400).json({ error: 'Keranjang kosong' })
-  }
-
-  const total_price = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
-
-  const conn = await db.getConnection()
+  let conn;
   try {
-    await conn.beginTransaction()
+    const { delivery_method, location, cart, payment_type, amount, message } = req.body;
+    const user_id = req.user.id;
 
-    for (const item of cart) {
-      const [[product]] = await conn.execute(
-        'SELECT stock FROM product WHERE product_id = ?',
-        [item.product_id]
-      )
-      if (!product) {
-        throw new Error(`Produk dengan ID ${item.product_id} tidak ditemukan`)
-      }
-      if (product.stock < item.quantity) {
-        throw new Error(`Stok tidak cukup untuk produk ID ${item.product_id}`)
-      }
+    if (!cart || !Array.isArray(cart) || cart.length === 0) {
+      return res.status(400).json({ error: 'Keranjang kosong' });
+    }
+    if (!delivery_method || !location) {
+      return res.status(400).json({ error: 'Delivery method dan lokasi wajib diisi' });
     }
 
-    const orderDateTime = getJakartaDateTime()
+    const paymentTypeLower = payment_type?.toLowerCase();
+    if (!['fullpayment', 'downpayment'].includes(paymentTypeLower)) {
+      return res.status(400).json({ error: 'Payment type tidak valid' });
+    }
 
+    const total_price = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+
+    if (paymentTypeLower === 'downpayment' && amount < total_price * 0.2) {
+      return res.status(400).json({ error: `DP minimal 20% dari total harga (${total_price * 0.2})` });
+    }
+    if (paymentTypeLower === 'fullpayment' && amount < total_price) {
+      return res.status(400).json({ error: 'Fullpayment harus sama atau lebih dari total harga' });
+    }
+
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    const orderDateTime = getJakartaDateTime();
     const [orderResult] = await conn.execute(
-      `INSERT INTO \`order\` (user_id, order_date, status, total_price, method, location)
-       VALUES (?, ?, 'unpaid', ?, ?, ?)`,
-      [user_id, orderDateTime, total_price, method, location]
-    )
-    const order_id = orderResult.insertId
+      `INSERT INTO \`order\` (user_id, order_date, status, total_price, delivery_method, location)
+         VALUES (?, ?, 'unpaid', ?, ?, ?)`,
+      [user_id, orderDateTime, total_price, delivery_method, location]
+    );
+    const order_id = orderResult.insertId;
 
     for (const item of cart) {
-      const subtotal = item.unit_price * item.quantity
-      await conn.execute(
-        `UPDATE product SET stock = stock - ? WHERE product_id = ?`,
-        [item.quantity, item.product_id]
-      )
-
-      await conn.execute(
-        `INSERT INTO stock_history (product_id, quantity, type)
-         VALUES (?, ?, 'out')`,
-        [item.product_id, item.quantity]
-      )
-
+      const subtotal = item.unit_price * item.quantity;
       await conn.execute(
         `INSERT INTO order_item (order_id, product_id, quantity, subtotal)
-         VALUES (?, ?, ?, ?)`,
-
+           VALUES (?, ?, ?, ?)`,
         [order_id, item.product_id, item.quantity, subtotal]
-      )
+      );
     }
 
-    await conn.commit()
-    conn.release()
-    res.status(201).json({ message: 'Checkout berhasil', order_id })
+    const initialStatus = paymentTypeLower === 'downpayment' ? 'pending_dp' : 'pending_fullpayment';
+
+    const [paymentResult] = await conn.execute(
+      `INSERT INTO payment (order_id, user_id, amount, payment_type, status, message, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+      [order_id, user_id, amount, paymentTypeLower, initialStatus, message || '']
+    );
+    const payment_id = paymentResult.insertId;
+
+    await conn.commit();
+    res.status(201).json({ message: 'Checkout berhasil. Silakan upload bukti pembayaran.', order_id, payment_id });
   } catch (error) {
-    await conn.rollback()
-    conn.release()
-    console.error(error)
-    res.status(500).json({ error: error.message || 'Gagal memproses checkout' })
+    console.error('Checkout error:', error);
+    if (conn) await conn.rollback();
+    res.status(500).json({ error: 'Gagal melakukan checkout' });
+  } finally {
+    if (conn) conn.release();
   }
-}
+};
 
-const createPayment = async (req, res) => {
-  const user_id = req.user.id
-  const order_id = req.params.id
-  const amount = req.body.amount
-  const proof = req.file?.filename
-
-  if (!proof) return res.status(400).json({ error: 'Bukti pembayaran wajib diupload' })
-
-  const conn = await db.getConnection()
+const getOrderDetailByPaymentId = async (req, res) => {
   try {
-    await conn.beginTransaction()
+    const tokenUserId = req.user?.id;
+    const paymentId = req.params.id;
 
-    await conn.execute(
-      `INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment, created_at)
-       VALUES (?, ?, ?, 'pending', ?, NOW())`,
-      [order_id, user_id, amount, proof]
-    )
+    if (!tokenUserId) {
+      return res.status(401).json({ message: 'User tidak terautentikasi' });
+    }
 
-    await conn.execute(
-      `UPDATE \`order\` SET status = 'pending' WHERE order_id = ? AND user_id = ?`,
-      [order_id, user_id]
-    )
+    if (!paymentId) {
+      return res.status(400).json({ message: 'Payment ID harus disertakan' });
+    }
 
-    await conn.commit()
-    conn.release()
-    res.status(201).json({ message: 'Bukti pembayaran berhasil dikirim' })
-  } catch (err) {
-    await conn.rollback()
-    conn.release()
-    console.error(err)
-    res.status(500).json({ error: 'Gagal menyimpan pembayaran' })
-  }
-}
+    const [payments] = await db.execute(
+      `SELECT order_id, user_id, payment_type, status, amount, payment_method, proof_of_payment_url, message
+         FROM payment
+         WHERE payment_id = ?`,
+      [paymentId]
+    );
 
-const getOrderDetail = async (req, res) => {
-  const userId = req.user.id
-  const orderId = req.params.id
+    if (!payments.length) {
+      return res.status(404).json({ message: 'Payment tidak ditemukan' });
+    }
 
-  try {
+    const payment = payments[0];
+    const orderId = payment.order_id;
+    const paymentUserId = payment.user_id;
+
     const [orders] = await db.execute(
-      'SELECT * FROM `order` WHERE order_id = ? AND user_id = ?',
-      [orderId, userId]
-    )
-    const order = orders[0]
-    if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' })
+      `SELECT o.order_id, o.user_id, o.delivery_method, o.location, o.total_price,
+              o.status, o.order_date, o.do_file_url, u.shop_name
+         FROM \`order\` o
+         JOIN user u ON o.user_id = u.user_id
+         WHERE o.order_id = ? AND o.user_id = ?`,
+      [orderId, paymentUserId]
+    );
+
+    if (!orders.length) {
+      return res.status(404).json({ message: 'Order tidak ditemukan' });
+    }
+
+    const order = orders[0];
 
     const [items] = await db.execute(
       `SELECT oi.order_item_id, oi.quantity, oi.subtotal,
               p.product_name, p.type, p.thick, p.avg_weight_per_stick
-       FROM order_item oi
-       JOIN product p ON oi.product_id = p.product_id
-       WHERE oi.order_id = ?`,
+         FROM order_item oi
+         JOIN product p ON oi.product_id = p.product_id
+         WHERE oi.order_id = ?`,
       [orderId]
-    )
+    );
 
-    const [payments] = await db.execute(
-      `SELECT payment_id, amount, status, proof_of_payment, created_at, verified_at
-       FROM payment WHERE order_id = ? AND user_id = ?`,
-      [orderId, userId]
-    )
+    const [allPaymentsForOrder] = await db.execute(
+      `SELECT payment_id, order_id, user_id, amount, payment_type, status, payment_method, proof_of_payment_url, message
+         FROM payment
+         WHERE order_id = ? AND user_id = ?
+         ORDER BY created_at ASC`,
+      [orderId, paymentUserId]
+    );
 
-    res.json({
-      ...order,
+    return res.json({
+      order: {
+        ...order,
+        amount_for_this_payment: payment.amount,
+      },
       items,
-      payment: payments[0] || null
-    })
+      payment,
+      payments: allPaymentsForOrder,
+    });
+
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Terjadi kesalahan server' })
+    console.error('Gagal mengambil data detail berdasarkan payment_id:', err);
+    return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
   }
-}
+};
 
 const getAllOrders = async (req, res) => {
   try {
     const [orders] = await db.execute(
-      `SELECT o.*, u.shop_name FROM \`order\` o
-       JOIN \`user\` u ON o.user_id = u.user_id
-       ORDER BY o.order_date DESC`
-    )
+      `SELECT o.*, u.shop_name
+         FROM \`order\` o
+         JOIN \`user\` u ON o.user_id = u.user_id
+         ORDER BY o.order_date DESC`
+    );
 
-    const orderIds = orders.map(o => o.order_id)
-    let items = []
+    const orderIds = orders.map(o => o.order_id);
+    let items = [];
+    let payments = [];
 
     if (orderIds.length) {
       const [itemResults] = await db.query(
         `SELECT oi.order_item_id, oi.order_id, oi.quantity, oi.subtotal,
                 p.product_id, p.product_name, p.type, p.thick, p.avg_weight_per_stick
-         FROM order_item oi
-         JOIN product p ON oi.product_id = p.product_id
-         WHERE oi.order_id IN (?)`,
+           FROM order_item oi
+           JOIN product p ON oi.product_id = p.product_id
+           WHERE oi.order_id IN (${orderIds.map(() => '?').join(',')})`,
+        orderIds
+      );
+      items = itemResults;
+
+      const [paymentResults] = await db.query(
+        `SELECT payment_id, order_id, user_id, amount, payment_type, status, payment_method, proof_of_payment_url, message FROM payment WHERE order_id IN (?)`,
         [orderIds]
-      )
-      items = itemResults
+      );
+      payments = paymentResults;
     }
 
-    const orderWithItems = orders.map(order => ({
+    const orderWithDetails = orders.map(order => ({
       ...order,
-      items: items.filter(i => i.order_id === order.order_id)
-    }))
+      items: items.filter(i => i.order_id === order.order_id),
+      payments: payments.filter(p => p.order_id === order.order_id)
+    }));
 
-    res.json(orderWithItems)
+    res.json(orderWithDetails);
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Gagal mengambil data order' })
+    console.error(error);
+    res.status(500).json({ error: 'Gagal mengambil data order' });
   }
-}
+};
 
 const updateOrderStatus = async (req, res) => {
-  const orderId = req.params.id
-  const { status } = req.body
+  const orderId = req.params.id;
+  const { status } = req.body;
 
-  const allowed = ['pending','processing','shipped','delivered','picked_up']
-  if (!allowed.includes(status)) return res.status(400).json({ error: 'Status tidak valid' })
+  const allowed = ['unpaid', 'pending_fullpayment', 'pending_dp', 'processing', 'ready', 'shipped', 'delivered', 'picked_up', 'cancel'];
+  if (!allowed.includes(status)) {
+    return res.status(400).json({ error: 'Status tidak valid' });
+  }
 
-  const conn = await db.getConnection()
+  const conn = await db.getConnection();
   try {
-    await conn.beginTransaction()
+    await conn.beginTransaction();
+
+    const [orderRows] = await conn.execute(
+      'SELECT status, user_id FROM `order` WHERE order_id = ? FOR UPDATE',
+      [orderId]
+    );
+
+    if (orderRows.length === 0) {
+      await conn.rollback();
+      conn.release();
+      return res.status(404).json({ error: 'Order tidak ditemukan' });
+    }
+    const currentOrderStatus = orderRows[0].status;
+    const orderUserId = orderRows[0].user_id;
+
+    if (currentOrderStatus === 'delivered' || currentOrderStatus === 'picked_up' || currentOrderStatus === 'cancel') {
+      await conn.rollback();
+      conn.release();
+      return res.status(400).json({ error: 'Status pesanan sudah final dan tidak dapat diubah.' });
+    }
+
+    if ((status === 'shipped' && currentOrderStatus !== 'shipped') || (status === 'picked_up' && currentOrderStatus !== 'picked_up')) {
+      const [orderItems] = await conn.execute(
+        'SELECT product_id, quantity FROM order_item WHERE order_id = ?',
+        [orderId]
+      );
+
+      if (orderItems.length === 0) {
+        await conn.rollback();
+        conn.release();
+        return res.status(400).json({ error: 'Tidak ada item dalam pesanan ini.' });
+      }
+
+      for (const item of orderItems) {
+        const [stockHistoryRows] = await conn.execute(
+          'SELECT SUM(quantity_change) AS current_stock FROM stock_history WHERE product_id = ? FOR UPDATE',
+          [item.product_id]
+        );
+
+        const currentStock = stockHistoryRows[0].current_stock || 0;
+
+        if (currentStock < item.quantity) {
+          await conn.rollback();
+          conn.release();
+          return res.status(400).json({ error: `Stok tidak cukup untuk produk ID ${item.product_id}. Stok saat ini: ${currentStock}, Dibutuhkan: ${item.quantity}. Harap update stok terlebih dahulu.` });
+        }
+      }
+
+      for (const item of orderItems) {
+        await conn.execute(
+          'INSERT INTO stock_history (product_id, quantity, quantity_change, type, source) VALUES (?, ?, ?, ?, ?)',
+          [item.product_id, item.quantity, -item.quantity, 'out', 'shipment']
+        );
+      }
+    }
+
+    let notificationMessage = '';
+    if (status === 'shipped' && currentOrderStatus !== 'shipped') {
+      notificationMessage = `Pesanan Anda #${orderId} sedang diantar.`;
+    } else if (status === 'picked_up' && currentOrderStatus !== 'picked_up') {
+      notificationMessage = `Pesanan Anda #${orderId} telah berhasil diambil.`;
+    } else if (status === 'ready' && currentOrderStatus !== 'ready') {
+      notificationMessage = `Pesanan Anda #${orderId} siap untuk diambil.`;
+    } else if (status === 'delivered' && currentOrderStatus !== 'delivered') {
+      notificationMessage = `Pesanan Anda #${orderId} telah berhasil diantar.`;
+    } else if (status === 'cancel' && currentOrderStatus !== 'cancel') {
+      notificationMessage = `Pesanan Anda #${orderId} telah dibatalkan.`;
+    } else if (status === 'processing' && currentOrderStatus !== 'processing') {
+      notificationMessage = `Pesanan Anda #${orderId} sedang diproses.`;
+    }
+
+    if (notificationMessage) {
+      await conn.execute(
+        'INSERT INTO notification (user_id, order_id, message, is_read, created_at) VALUES (?, ?, ?, ?, NOW())',
+        [orderUserId, orderId, notificationMessage, false]
+      );
+    }
 
     const [result] = await conn.execute(
       'UPDATE `order` SET status = ? WHERE order_id = ?',
       [status, orderId]
-    )
+    );
+
     if (result.affectedRows === 0) {
-      await conn.rollback(); conn.release();
-      return res.status(404).json({ error: 'Order tidak ditemukan' })
+      await conn.rollback();
+      conn.release();
+      return res.status(404).json({ error: 'Order tidak ditemukan' });
     }
 
-    const [[orderRow]] = await conn.execute(
-      'SELECT user_id FROM `order` WHERE order_id = ?',
-      [orderId]
-    )
+    await conn.commit();
+    conn.release();
 
-    const textMap = {
-      pending:    'dibatalkan',
-      processing: 'sedang dikemas',
-      shipped:    'sedang diantar',
-      delivered:  'telah diantar',
-      picked_up:  'telah diambil'
-    }
-    const message = `Pesanan #${orderId} Anda ${textMap[status] || status}.`
-
-    await conn.execute(
-      'INSERT INTO notification (user_id, order_id, message, is_read, created_at) VALUES (?, ?, ?, FALSE, NOW())',
-      [orderRow.user_id, orderId, message]
-    )
-
-    await conn.commit()
-    conn.release()
-    res.json({ message: 'Status diperbarui dan notifikasi terkirim' })
+    res.json({ message: 'Status order berhasil diupdate' });
   } catch (err) {
-    await conn.rollback()
-    conn.release()
-    console.error(err)
-    res.status(500).json({ error: 'Gagal memperbarui status' })
+    await conn.rollback();
+    conn.release();
+    console.error('Error updating order status or stock:', err);
+    res.status(500).json({ error: 'Gagal update status order atau stok. ' + err.message });
   }
-}
+};
 
 const cancelPayment = async (req, res) => {
-  const userId = req.user.id
-  const orderId = req.params.id
+  const userId = req.user.id;
+  const orderId = req.params.id;
 
-  const conn = await db.getConnection()
+  const conn = await db.getConnection();
   try {
-    await conn.beginTransaction()
+    await conn.beginTransaction();
 
     const [orders] = await conn.execute(
-      'SELECT * FROM `order` WHERE order_id = ? AND user_id = ? AND status IN (?, ?)',
-      [orderId, userId, 'pending', 'unpaid'] 
-    )
+      'SELECT * FROM `order` WHERE order_id = ? AND user_id = ? AND status IN (?, ?, ?)',
+      [orderId, userId, 'pending_fullpayment', 'pending_dp', 'unpaid']
+    );
     if (!orders.length) {
       await conn.rollback(); conn.release();
-      return res.status(404).json({ error: 'Order tidak ditemukan atau tidak bisa dibatalkan' })
+      return res.status(404).json({ error: 'Order tidak ditemukan atau tidak bisa dibatalkan' });
     }
 
-    const [items] = await conn.execute(
-      'SELECT product_id, quantity FROM order_item WHERE order_id = ?',
-      [orderId]
-    )
-    for (const it of items) {
-      await conn.execute(
-        'UPDATE product SET stock = stock + ? WHERE product_id = ?',
-        [it.quantity, it.product_id]
-      )
-    }
+    await conn.execute('UPDATE `order` SET status = ? WHERE order_id = ?', ['cancel', orderId]);
+    await conn.execute('DELETE FROM payment WHERE order_id = ? AND user_id = ?', [orderId, userId]);
 
-    await conn.execute('UPDATE `order` SET status = ? WHERE order_id = ?', ['cancel', orderId])
-    await conn.execute('DELETE FROM payment WHERE order_id = ? AND user_id = ?', [orderId, userId])
-
-    await conn.commit()
-    conn.release()
-    res.json({ message: 'Pesanan dibatalkan dan stok dikembalikan' })
+    await conn.commit();
+    conn.release();
+    res.json({ message: 'Pesanan dibatalkan' });
   } catch (err) {
-    await conn.rollback()
-    conn.release()
-    console.error(err)
-    res.status(500).json({ error: 'Gagal membatalkan pesanan' })
+    await conn.rollback();
+    conn.release();
+    console.error(err);
+    res.status(500).json({ error: 'Gagal membatalkan pesanan' });
   }
-}
+};
 
 const confirmDelivery = async (req, res) => {
   const userId = req.user?.id;
@@ -306,12 +367,87 @@ const confirmDelivery = async (req, res) => {
   }
 };
 
+const uploadDOFile = async (req, res) => {
+  const { orderId } = req.params;
+  const doFileUrl = req.file?.path;
+  const doFilePublicId = req.file?.filename;
+
+  if (!doFileUrl) {
+    return res.status(400).json({ message: 'No file uploaded' });
+  }
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [result] = await conn.execute(
+      `UPDATE \`order\` SET do_file_url = ?, do_file_public_id = ? WHERE order_id = ?`,
+      [doFileUrl, doFilePublicId, orderId]
+    );
+
+    if (result.affectedRows === 0) {
+      await conn.rollback();
+      conn.release();
+      return res.status(404).json({ message: 'Pesanan tidak ditemukan atau tidak dapat diperbarui.' });
+    }
+
+    await conn.commit();
+    conn.release();
+    res.status(200).json({
+      message: 'File DO berhasil diunggah dan disimpan!',
+      orderId: orderId,
+      doFileUrl: doFileUrl,
+      doFilePublicId: doFilePublicId
+    });
+  } catch (error) {
+    await conn.rollback();
+    conn.release();
+    console.error('Error saat mengunggah file DO:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan server saat mengunggah file DO.' });
+  }
+};
+
+const updateEstimatedDate = async (req, res) => {
+  const { orderId } = req.params;
+  const { estimated_date } = req.body;
+
+  if (!estimated_date) {
+    return res.status(400).json({ message: 'Field estimated_date wajib diisi' });
+  }
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [result] = await conn.execute(
+      'UPDATE `order` SET estimated_delivery_date = ? WHERE order_id = ?',
+      [estimated_date, orderId]
+    );
+
+    if (result.affectedRows === 0) {
+      await conn.rollback();
+      conn.release();
+      return res.status(404).json({ message: 'Order tidak ditemukan.' });
+    }
+
+    await conn.commit();
+    res.json({ message: 'Estimasi waktu berhasil disimpan' });
+  } catch (error) {
+    await conn.rollback();
+    console.error(error);
+    res.status(500).json({ message: 'Terjadi kesalahan server' });
+  } finally {
+    if (conn) conn.release();
+  }
+};
+
 module.exports = {
   checkout,
-  createPayment,
-  getOrderDetail,
+  getOrderDetailByPaymentId,
   getAllOrders,
   updateOrderStatus,
   cancelPayment,
-  confirmDelivery
-}
+  confirmDelivery,
+  uploadDOFile,
+  updateEstimatedDate
+};

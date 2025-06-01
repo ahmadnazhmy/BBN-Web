@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 
@@ -7,13 +7,21 @@ function User() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notification, setNotification] = useState({ message: '', type: '' });
+
+  const showNotification = useCallback((msg, type = 'success', duration = 3000) => {
+    setNotification({ message: msg, type });
+    setTimeout(() => {
+      setNotification({ message: '', type: '' });
+    }, duration);
+  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const token = localStorage.getItem('adminToken');
         if (!token) {
-          setError('No token found');
+          setError('Anda tidak memiliki izin. Silakan login kembali.');
           setLoading(false);
           return;
         }
@@ -24,77 +32,88 @@ function User() {
           },
         });
 
-        if (!res.ok) throw new Error('Failed to fetch user data');
+        if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error('Sesi Anda telah berakhir atau token tidak valid. Silakan login kembali.');
+          }
+          throw new Error('Gagal mengambil data pelanggan.');
+        }
 
         const data = await res.json();
         setUserData(data.users);
         setLoading(false);
       } catch (err) {
-        console.error(err);
-        setError('Error fetching user data');
+        console.error("Error fetching user data:", err);
+        setError(err.message || 'Terjadi kesalahan saat memuat data pelanggan.');
         setLoading(false);
       }
     };
 
     fetchUserData();
-  }, []);
+  }, [showNotification]);
 
   const filteredUsers = userData.filter(user =>
     user.shop_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <div className="p-6">Memuat...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
+  if (loading) return <div className="p-6 text-center text-lg">Memuat data pelanggan...</div>;
+  if (error) return <div className="p-6 text-center text-red-500 text-lg">Error: {error}</div>;
 
   return (
-    <div className="p-6 md:px-6 md:py-6 flex flex-col h-full">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-        <h1 className="text-xl font-bold py-2">Daftar Pelanggan</h1>
+    <div className="px-6 pt-6 flex flex-col h-full bg-gray-50">
+      <div className="p-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold text-gray-800">Daftar Pelanggan</h1>
 
-        <div className="relative w-full md:w-1/3 mt-2 md:mt-0 ">
-          <input
-            type="text"
-            placeholder="Cari Nama Toko..."
-            className="p-2 pl-10 border border-gray-300 rounded-xs w-full"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-3 text-gray-500" />
+          <div className="relative w-full md:w-1/3">
+            <input
+              type="text"
+              placeholder="Cari Nama Toko..."
+              className="p-2 pl-10 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          </div>
         </div>
+        {notification.message && (
+          <div className={`mt-4 px-4 py-2 rounded-md text-sm ${
+            notification.type === 'success' ? 'text-blue-800 bg-blue-100' : 'text-red-800 bg-red-100'
+          }`}>
+            {notification.message}
+          </div>
+        )}
       </div>
 
-      <div className="overflow-hidden bg-white rounded-xs">
-        <div className="max-h-[85vh] overflow-y-auto">
-        <table className="min-w-full table-fixed text-sm">
-          <thead className="bg-gray-100 sticky top-0 z-10">
-            <tr>
-              <th className="w-12 px-4 py-3 border-b border-gray-300 text-left">No</th>
-              <th className="w-48 px-4 py-3 border-b border-gray-300 text-left">Nama Toko</th>
-              <th className="w-64 px-4 py-3 border-b border-gray-300 text-left">Email</th>
-              <th className="w-40 px-4 py-3 border-b border-gray-300 text-left">No. Telepon</th>
-              <th className="w-[300px] px-4 py-3 border-b border-gray-300 text-left">Alamat</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map((user, index) => (
-              <tr key={user.user_id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 border-b border-gray-300">{index + 1}</td>
-                <td className="px-4 py-3 border-b border-gray-300 truncate">{user.shop_name}</td>
-                <td className="px-4 py-3 border-b border-gray-300 truncate">{user.email}</td>
-                <td className="px-4 py-3 border-b border-gray-300">{user.phone}</td>
-                <td className="px-4 py-3 border-b border-gray-300">{user.address}</td>
+      <div className="bg-white rounded-lg shadow-sm flex-grow overflow-hidden">
+        <div className="max-h-[80vh] overflow-auto">
+          <table className="w-full text-sm text-gray-700">
+            <thead className="bg-gray-100 sticky top-0 border-b border-gray-200">
+              <tr>
+                <th className="w-12 px-4 py-3 text-left font-semibold text-gray-700">No</th>
+                <th className="w-48 px-4 py-3 text-left font-semibold text-gray-700">Nama Toko</th>
+                <th className="w-64 px-4 py-3 text-left font-semibold text-gray-700">Email</th>
+                <th className="w-40 px-4 py-3 text-left font-semibold text-gray-700">No. Telepon</th>
+                <th className="w-[300px] px-4 py-3 text-left font-semibold text-gray-700">Alamat</th>
               </tr>
-            ))}
-              {filteredUsers.length === 0 && (
+            </thead>
+            <tbody>
+              {filteredUsers.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan="5"
-                    className="px-4 py-6 text-center text-gray-500 border-b border-gray-300"
-                    style={{ height: '60px' }}
-                  >
+                  <td colSpan="5" className="text-center py-8 text-gray-500">
                     Tidak ada hasil ditemukan.
                   </td>
                 </tr>
+              ) : (
+                filteredUsers.map((user, index) => (
+                  <tr key={user.user_id} className="border-b border-gray-200 even:bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <td className="px-4 py-3">{index + 1}</td>
+                    <td className="px-4 py-3 font-semibold text-gray-900 truncate">{user.shop_name}</td>
+                    <td className="px-4 py-3 truncate">{user.email}</td>
+                    <td className="px-4 py-3">{user.phone}</td>
+                    <td className="px-4 py-3">{user.address}</td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

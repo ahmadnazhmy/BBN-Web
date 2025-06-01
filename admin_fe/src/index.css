@@ -1,6 +1,7 @@
 :root {
-  font-family: "Nunito", sans-serif;
+  font-family: "Work Sans", sans-serif;
   line-height: 1.5;
+  font-size: 0.875rem;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -56,4 +57,49 @@ select {
   font-weight: normal;
   color: #000; 
   border-radius: 4px;
+}
+
+.no-print {
+    display: block;
+  }
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+  }
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+@keyframes zoom-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-zoom-in {
+  animation: zoom-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }

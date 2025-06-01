@@ -4,41 +4,49 @@ import BG5 from "../assets/images/_RRR5400.JPG";
 
 function Promotion() {
   return (
-    <div className="bg-white p-4 md:px-24 md:py-16 space-y-8 md:space-y-0">
-      <div className="flex flex-col md:flex-row h-auto md:h-80">
-        <div
-          className="relative w-full md:w-1/2 h-64 md:h-full bg-cover bg-center"
-          style={{ backgroundImage: `url(${BG5})` }}
-        >
-          <div className="absolute inset-0 bg-black opacity-20"></div>
-        </div>
-        <div className="w-full md:w-1/2 flex flex-col justify-center px-4 md:px-12 pt-4 md:pt-0">
-          <p className="text-xl md:text-2xl font-bold mb-4">Keunggulan Prima Inti Truss:</p>
-          <ul className="space-y-2">
-            <li>✔️ Kekuatan struktural tinggi</li>
-            <li>✔️ Tahan karat & cuaca ekstrem</li>
-            <li>✔️ Presisi & efisiensi pemasangan</li>
-            <li>✔️ Estetika atap modern</li>
-          </ul>
-        </div>
-      </div>
+    <div className="bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-16">
+        <div className="relative flex flex-col md:flex-row bg-white rounded-xl shadow-lg overflow-hidden">
+          <div
+            className="relative w-full md:w-1/2 h-64 md:h-96 bg-cover bg-center"
+            style={{ backgroundImage: `url(${BG5})` }}
+          >
+            <div className="absolute inset-0 bg-black/30"></div>
+          </div>
 
-      <div className="flex flex-col md:flex-row-reverse h-auto md:h-80">
-        <div
-          className="relative w-full md:w-1/2 h-64 md:h-full bg-cover bg-center"
-          style={{ backgroundImage: `url(${BG4})` }}
-        >
-          <div className="absolute inset-0 bg-black opacity-20"></div>
+          <div className="relative w-full md:w-1/2 flex flex-col justify-center p-8 md:p-12">
+            <div className="relative z-10 text-gray-800">
+              <h2 className="text-2xl md:text-3xl font-extrabold mb-4 leading-tight">Keunggulan Prima Inti Truss:</h2>
+              <ul className="space-y-3 text-lg">
+                <li><span className="text-blue-600 font-semibold">✔️ Kekuatan struktural tinggi</span> – Kokoh dan andal untuk setiap proyek.</li>
+                <li><span className="text-blue-600 font-semibold">✔️ Tahan karat & cuaca ekstrem</span> – Dirancang untuk iklim tropis Indonesia.</li>
+                <li><span className="text-blue-600 font-semibold">✔️ Presisi & efisiensi pemasangan</span> – Mempercepat waktu konstruksi Anda.</li>
+                <li><span className="text-blue-600 font-semibold">✔️ Estetika atap modern</span> – Tampilan yang bersih dan stylish.</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
-        <div className="w-full md:w-1/2 flex flex-col justify-center px-4 md:px-12 pt-4 md:pt-0">
-          <p className="text-xl md:text-2xl font-bold mb-4">
-            Baja ringan bermutu tinggi & kualitas terjamin
-          </p>
-          <p>
-            Solusi penutup atap yang kuat, tahan lama, dan presisi. Kualitas tepercaya untuk investasi jangka panjang Anda.
-          </p>
+        <div className="relative flex flex-col md:flex-row-reverse bg-white rounded-xl shadow-lg overflow-hidden">
+          <div
+            className="relative w-full md:w-1/2 h-64 md:h-96 bg-cover bg-center"
+            style={{ backgroundImage: `url(${BG4})` }}
+          >
+            <div className="absolute inset-0 bg-black/30"></div>
+          </div>
+
+          <div className="relative w-full md:w-1/2 flex flex-col justify-center p-8 md:p-12">
+            <div className="relative z-10 text-gray-800">
+              <h2 className="text-2xl md:text-3xl font-extrabold mb-4 leading-tight">
+                Baja Ringan Bermutu Tinggi & Kualitas Terjamin
+              </h2>
+              <p className="text-lg leading-relaxed">
+                Kami menyediakan solusi penutup atap yang kuat, tahan lama, dan presisi. Setiap produk Prima Inti Truss adalah jaminan kualitas terpercaya untuk investasi jangka panjang properti Anda di Bekasi dan sekitarnya.
+              </p>
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
   );

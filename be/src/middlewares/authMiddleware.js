@@ -1,49 +1,49 @@
-  const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
-  const authenticate = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-  
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Token tidak ditemukan' });
-    }
-  
-    const token = authHeader.split(' ')[1];
-  
-    jwt.verify(token, 'RAHASIA', (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ message: 'Token tidak valid' });
-      }
-  
-      if (!decoded.id) {
-        return res.status(400).json({ message: 'Token tidak menyertakan ID pengguna' });
-      }
-  
-      req.user = decoded;
-      next();
-    });
-  };  
+const SECRET_KEY = 'RAHASIA';
 
-  const authenticateAdmin = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
+const authenticate = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Token tidak ditemukan' });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Token tidak ditemukan' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ message: 'Token tidak valid atau sudah expired' });
     }
 
-    const token = authHeader.split(' ')[1];
+    if (!decoded.id) {
+      return res.status(400).json({ message: 'Token tidak menyertakan ID pengguna' });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 
-    jwt.verify(token, 'RAHASIA', (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ message: 'Token tidak valid' });
-      }
+const authenticateAdmin = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
 
-      if (!decoded.id || !decoded.admin_id) { 
-        return res.status(403).json({ message: 'Access Denied. Admins only.' });
-      }
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Token tidak ditemukan' });
+  }
 
-      req.admin = decoded;  
-      next();
-    });
-  };
+  const adminToken = authHeader.split(' ')[1];
 
-  module.exports = { authenticate, authenticateAdmin };
+  jwt.verify(adminToken, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ message: 'Token tidak valid atau sudah expired' });
+    }
+    if (!decoded.id || !decoded.admin_id) {
+      return res.status(403).json({ message: 'Access Denied. Admins only.' });
+    }
+
+    req.admin = decoded;
+    next();
+  });
+};
+
+module.exports = { authenticate, authenticateAdmin };

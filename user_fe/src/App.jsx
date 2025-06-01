@@ -9,24 +9,22 @@ import Cart from './pages/Cart';
 import Payment from './pages/Payment';
 import History from './pages/History';
 import Notification from './pages/Notification';
-import RetryPayment from './pages/RetryPayment';
+import Invoice from './pages/Invoice';
 
 function App() {
-  const user = JSON.parse(localStorage.getItem('user'));
-
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home />} /> 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/editprofile" element={<EditProfile />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/payment" element={<Payment />} />
-        <Route path="/payment/:orderId" element={<Payment />} />  
-        <Route path="/payment/retry/:orderId" element={<RetryPayment />} />
+        <Route path="/payment/:orderId" element={<Payment />} /> 
         <Route path="/history" element={<History />} />
-        <Route path="/notifications" element={<Notification />} />
+        <Route path="/notifications" element={<Notification />} /> 
+        <Route path="/invoice" element={<Invoice />} /> 
       </Routes>
     </Router>
   );

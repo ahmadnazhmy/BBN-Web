@@ -7,39 +7,55 @@ function Gallery() {
   const images = [
     {
       src: BG6,
-      alt: 'Foto 1',
-      description: 'Lembaran baja presisi tinggi untuk struktur kokoh dan tahan lama.',
+      alt: 'Lembaran baja presisi tinggi',
+      title: 'Presisi Baja Berkualitas Tinggi',
+      description: 'Lembaran baja presisi tinggi untuk struktur kokoh dan tahan lama, diproduksi dengan standar ketat.',
     },
     {
       src: BG7,
-      alt: 'Foto 2',
-      description: 'Spandek dengan bentuk dan kekuatan optimal untuk atap dan dinding.',
+      alt: 'Spandek untuk atap dan dinding',
+      title: 'Produksi Spandek Unggulan', 
+      description: 'Spandek kami memiliki bentuk dan kekuatan optimal, ideal untuk atap dan dinding yang estetis dan fungsional.',
     },
     {
       src: BG8,
-      alt: 'Foto 3',
-      description: 'Pengangkutan coil aman oleh operator berpengalaman.',
+      alt: 'Pengangkutan coil aman',
+      title: 'Penanganan Material Profesional', 
+      description: 'Proses pengangkutan coil baja dilakukan dengan aman dan efisien oleh operator berpengalaman kami.',
     },
   ];
 
   return (
-    <div className="p-4 md:px-24 md:py-16">
-      <h1 className="text-center text-xl md:text-2xl font-bold mb-4">
-        Galeri Produksi
-      </h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-12">
-        {images.map((image, index) => (
-          <div key={index} className="bg-white shadow-md rounded-xs border border-gray-300 overflow-hidden">
-            <img 
-              src={image.src} 
-              alt={image.alt} 
-              className="w-full h-auto rounded-xs transform transition-transform duration-300 hover:scale-105"  
-            />
-            <p className="p-4 text-center text-gray-700">
-              {image.description}
-            </p>
-          </div>
-        ))}
+    <div className="bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-center text-4xl font-extrabold text-gray-900 mb-12 leading-tight tracking-tight">
+          Galeri Produksi Kami
+        </h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {images.map((image, index) => (
+            <div
+              key={index}
+              className="bg-white shadow-xl rounded-lg overflow-hidden transform transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-2xl group" 
+            >
+              <div className="relative overflow-hidden">
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  className="w-full h-64 object-cover object-center transform transition-transform duration-500 ease-in-out group-hover:scale-110" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div> 
+              </div>
+              <div className="p-6"> 
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {image.title}
+                </h3>
+                <p className="text-gray-700 text-base leading-relaxed">
+                  {image.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
