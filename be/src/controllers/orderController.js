@@ -230,7 +230,7 @@ const updateOrderStatus = async (req, res) => {
       cancel: `Pesanan Anda #${orderId} telah dibatalkan.`,
       processing: `Pesanan Anda #${orderId} sedang diproses.`
     };
-    
+
     return oldStatus !== newStatus ? messages[newStatus] || '' : '';
   };
 
@@ -239,7 +239,7 @@ const updateOrderStatus = async (req, res) => {
     await conn.beginTransaction();
 
     const [orderRows] = await conn.execute(
-      'SELECT status, user_id FROM `order` WHERE order_id = ? FOR UPDATE',
+      'SELECT status, user_id FROM \`order\` WHERE order_id = ? FOR UPDATE',
       [orderId]
     );
 
@@ -309,7 +309,7 @@ const updateOrderStatus = async (req, res) => {
     }
 
     await conn.execute(
-      'UPDATE `order` SET status = ? WHERE order_id = ?',
+      'UPDATE \`order\` SET status = ? WHERE order_id = ?',
       [status, orderId]
     );
 
@@ -338,7 +338,7 @@ const cancelPayment = async (req, res) => {
     await conn.beginTransaction();
 
     const [orders] = await conn.execute(
-      'SELECT * FROM `order` WHERE order_id = ? AND user_id = ? AND status IN (?, ?, ?)',
+      'SELECT * FROM \`order\` WHERE order_id = ? AND user_id = ? AND status IN (?, ?, ?)',
       [orderId, userId, 'pending_fullpayment', 'pending_dp', 'unpaid']
     );
     if (!orders.length) {
@@ -346,7 +346,7 @@ const cancelPayment = async (req, res) => {
       return res.status(404).json({ error: 'Order tidak ditemukan atau tidak bisa dibatalkan' });
     }
 
-    await conn.execute('UPDATE `order` SET status = ? WHERE order_id = ?', ['cancel', orderId]);
+    await conn.execute('UPDATE \`order\` SET status = ? WHERE order_id = ?', ['cancel', orderId]);
     await conn.execute('DELETE FROM payment WHERE order_id = ? AND user_id = ?', [orderId, userId]);
 
     await conn.commit();
@@ -368,7 +368,7 @@ const confirmDelivery = async (req, res) => {
 
   try {
     const [orders] = await db.execute(
-      'SELECT * FROM `order` WHERE order_id = ? AND user_id = ? AND status = ?',
+      'SELECT * FROM \`order\` WHERE order_id = ? AND user_id = ? AND status = ?',
       [orderId, userId, 'shipped']
     );
 
@@ -377,7 +377,7 @@ const confirmDelivery = async (req, res) => {
     }
 
     await db.execute(
-      'UPDATE `order` SET status = ? WHERE order_id = ?',
+      'UPDATE \`order\` SET status = ? WHERE order_id = ?',
       ['delivered', orderId]
     );
 
@@ -439,7 +439,7 @@ const updateEstimatedDate = async (req, res) => {
     await conn.beginTransaction();
 
     const [result] = await conn.execute(
-      'UPDATE `order` SET estimated_date = ? WHERE order_id = ?',
+      'UPDATE \`order\` SET estimated_date = ? WHERE order_id = ?',
       [estimated_date, orderId]
     );
 
