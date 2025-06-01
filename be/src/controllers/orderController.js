@@ -239,7 +239,7 @@ const updateOrderStatus = async (req, res) => {
     await conn.beginTransaction();
 
     const [orderRows] = await conn.execute(
-      'SELECT status, user_id FROM \`order\` WHERE order_id = ? FOR UPDATE',
+      'SELECT status, user_id FROM `order` WHERE order_id = ? FOR UPDATE',
       [orderId]
     );
 
@@ -249,7 +249,7 @@ const updateOrderStatus = async (req, res) => {
     }
 
     const currentStatus = orderRows[0].status;
-    const userId = orderRows[0].user_id === undefined ? null : orderRows[0].user_id;
+    const userId = orderRows[0].user_id ?? null;
 
     if (['delivered', 'picked_up', 'cancel'].includes(currentStatus)) {
       await conn.rollback();
@@ -259,7 +259,9 @@ const updateOrderStatus = async (req, res) => {
     const validNextStatuses = allowedTransitions[currentStatus] || [];
     if (!validNextStatuses.includes(status)) {
       await conn.rollback();
-      return res.status(400).json({ error: `Transisi status dari '${currentStatus}' ke '${status}' tidak diperbolehkan.` });
+      return res.status(400).json({
+        error: `Transisi status dari '${currentStatus}' ke '${status}' tidak diperbolehkan.`
+      });
     }
 
     if ((status === 'shipped' && currentStatus !== 'shipped') || (status === 'picked_up' && currentStatus !== 'picked_up')) {
@@ -274,6 +276,13 @@ const updateOrderStatus = async (req, res) => {
       }
 
       for (const item of orderItems) {
+        if (item.product_id === undefined || item.quantity === undefined) {
+          await conn.rollback();
+          return res.status(400).json({
+            error: `Data item pesanan tidak lengkap: ${JSON.stringify(item)}`
+          });
+        }
+
         const [stockRows] = await conn.execute(
           'SELECT SUM(quantity_change) AS current_stock FROM stock_history WHERE product_id = ? FOR UPDATE',
           [item.product_id]
@@ -298,17 +307,18 @@ const updateOrderStatus = async (req, res) => {
     }
 
     const notifMessage = generateNotificationMessage(orderId, currentStatus, status);
-    if (notifMessage && userId !== null) {
+
+    if (notifMessage && userId !== null && userId !== undefined && orderId !== undefined) {
       await conn.execute(
         'INSERT INTO notification (user_id, order_id, message, is_read, created_at) VALUES (?, ?, ?, ?, NOW())',
         [userId, orderId, notifMessage, false]
       );
-    } else if (notifMessage && userId === null) {
-      console.warn(`Peringatan: Notifikasi untuk order ${orderId} (${notifMessage}) tidak dibuat karena user_id null.`);
+    } else if (notifMessage) {
+      console.warn(`Notifikasi tidak dibuat: userId = ${userId}, orderId = ${orderId}, message = ${notifMessage}`);
     }
 
     await conn.execute(
-      'UPDATE \`order\` SET status = ? WHERE order_id = ?',
+      'UPDATE `order` SET status = ? WHERE order_id = ?',
       [status, orderId]
     );
 
@@ -318,7 +328,6 @@ const updateOrderStatus = async (req, res) => {
   } catch (err) {
     await conn.rollback();
     console.error('Error updating order status:', err);
-
     res.status(500).json({ error: 'Gagal update status order: ' + err.message });
   } finally {
     if (conn) {
