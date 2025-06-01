@@ -32,7 +32,7 @@ const markNotificationAsRead = async (req, res) => {
 
   try {
     const [result] = await db.execute(
-      'UPDATE notification SET is_read = TRUE WHERE id = ? AND user_id = ?',
+      'UPDATE notification SET is_read = TRUE WHERE notification_id = ? AND user_id = ?',
       [notifId, userId]
     );
 

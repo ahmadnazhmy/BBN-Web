@@ -191,7 +191,7 @@ export default function Order() {
 
     const token = localStorage.getItem('adminToken');
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('doFile', file);
 
     try {
       const res = await fetch(`${backendURL}/api/admin/orders/${orderId}/upload-do`, {
@@ -441,7 +441,7 @@ export default function Order() {
                               Pilih File
                               <input
                                 type="file"
-                                accept=".pdf,.jpg,.png"
+                                accept=".pdf,.doc,.docx"
                                 onChange={e => {
                                   const file = e.target.files[0];
                                   handleUploadDO(order.order_id, file);

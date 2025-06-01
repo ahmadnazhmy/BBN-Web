@@ -206,7 +206,7 @@ const updateOrderStatus = async (req, res) => {
   ];
 
   if (!allowedStatuses.includes(status)) {
-    return res.status(400).json({ error: 'Status tidak valid' });
+    return res.status(400).json({ error: 'Status tidak valid.' });
   }
 
   const allowedTransitions = {
@@ -230,6 +230,7 @@ const updateOrderStatus = async (req, res) => {
       cancel: `Pesanan Anda #${orderId} telah dibatalkan.`,
       processing: `Pesanan Anda #${orderId} sedang diproses.`
     };
+    
     return oldStatus !== newStatus ? messages[newStatus] || '' : '';
   };
 
@@ -244,11 +245,11 @@ const updateOrderStatus = async (req, res) => {
 
     if (orderRows.length === 0) {
       await conn.rollback();
-      return res.status(404).json({ error: 'Order tidak ditemukan' });
+      return res.status(404).json({ error: 'Order tidak ditemukan.' });
     }
 
     const currentStatus = orderRows[0].status;
-    const userId = orderRows[0].user_id;
+    const userId = orderRows[0].user_id || null;
 
     if (['delivered', 'picked_up', 'cancel'].includes(currentStatus)) {
       await conn.rollback();
@@ -278,7 +279,7 @@ const updateOrderStatus = async (req, res) => {
           [item.product_id]
         );
 
-        const currentStock = stockRows[0].current_stock || 0;
+        const currentStock = stockRows[0].current_stock || 0; 
 
         if (currentStock < item.quantity) {
           await conn.rollback();
@@ -297,11 +298,14 @@ const updateOrderStatus = async (req, res) => {
     }
 
     const notifMessage = generateNotificationMessage(orderId, currentStatus, status);
-    if (notifMessage) {
+    if (notifMessage && userId !== null) { 
       await conn.execute(
         'INSERT INTO notification (user_id, order_id, message, is_read, created_at) VALUES (?, ?, ?, ?, NOW())',
         [userId, orderId, notifMessage, false]
       );
+    } else if (notifMessage && userId === null) {
+
+      console.warn(`Peringatan: Notifikasi untuk order ${orderId} (${notifMessage}) tidak dibuat karena user_id null.`);
     }
 
     await conn.execute(
@@ -310,17 +314,20 @@ const updateOrderStatus = async (req, res) => {
     );
 
     await conn.commit();
-    res.json({ message: 'Status order berhasil diupdate' });
+    res.json({ message: 'Status order berhasil diupdate.' });
 
   } catch (err) {
     await conn.rollback();
     console.error('Error updating order status:', err);
+
     res.status(500).json({ error: 'Gagal update status order: ' + err.message });
   } finally {
-    conn.release();
+
+    if (conn) {
+      conn.release();
+    }
   }
 };
-
 
 const cancelPayment = async (req, res) => {
   const userId = req.user.id;
