@@ -110,6 +110,7 @@ function History() {
     const [error, setError] = useState(null);
     const token = localStorage.getItem('token');
     const navigate = useNavigate();
+    const backendURL = 'https://bbn-web-production.up.railway.app';
 
     useEffect(() => {
         if (!token) {
@@ -121,7 +122,7 @@ function History() {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch('https://bbn-web-production.up.railway.app/api/user/history', {
+                const res = await fetch(`${backendURL}/api/user/history`, {
                     headers: {
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${token}`,
@@ -151,7 +152,7 @@ function History() {
         };
 
         fetchHistory();
-    }, [token, navigate]);
+    }, [token, navigate, backendURL]);
 
     if (loading) {
         return (
