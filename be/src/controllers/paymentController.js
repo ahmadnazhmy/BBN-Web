@@ -15,7 +15,7 @@ async function getOrderPaymentDetailsWithItems(req, res) {
   if (!payment_id) return res.status(400).json({ error: 'payment_id harus disertakan' });
 
   try {
-    const [paymentRows] = await pool.query('SELECT *, proof_of_payment_url AS proof_of_payment FROM payment WHERE payment_id = ?', [payment_id]);
+    const [paymentRows] = await pool.query('SELECT *, proof_of_payment AS proof_of_payment FROM payment WHERE payment_id = ?', [payment_id]);
     if (paymentRows.length === 0) return res.status(404).json({ error: 'Payment tidak ditemukan' });
     const payment = paymentRows[0];
 
@@ -23,7 +23,7 @@ async function getOrderPaymentDetailsWithItems(req, res) {
     if (orderRows.length === 0) return res.status(404).json({ error: 'Order tidak ditemukan' });
     const order = orderRows[0];
 
-    const [payments] = await pool.query('SELECT *, proof_of_payment_url AS proof_of_payment FROM payment WHERE order_id = ?', [order.order_id]);
+    const [payments] = await pool.query('SELECT *, proof_of_payment FROM payment WHERE order_id = ?', [order.order_id]);
 
     const [items] = await pool.query(
       `SELECT
@@ -112,12 +112,12 @@ const uploadProof = async (req, res) => {
       const paymentId = existingPayments[0].payment_id;
       await conn.execute(`
         UPDATE payment
-        SET proof_of_payment_url = ?, proof_of_payment_public_id = ?, amount = ?, payment_method = ?, status = ?, message = NULL
+        SET proof_of_payment = ?, proof_of_payment_public_id = ?, amount = ?, payment_method = ?, status = ?, message = NULL
         WHERE payment_id = ?
       `, [proofUrl, proofPublicId, amount, payment_method, initialStatus, paymentId]);
     } else {
       await conn.execute(`
-        INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment_url, proof_of_payment_public_id, payment_method, created_at)
+        INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment, proof_of_payment_public_id, payment_method, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `, [order_id, user_id, amount, initialStatus, proofUrl, proofPublicId, payment_method, getJakartaDateTime()]);
     }
@@ -146,7 +146,7 @@ const getAllPayments = async (req, res) => {
       p.payment_method,
       p.status,
       p.message,
-      p.proof_of_payment_url AS proof_of_payment,
+      p.proof_of_payment,
       p.created_at,
       p.verified_at,
       p.due_date,

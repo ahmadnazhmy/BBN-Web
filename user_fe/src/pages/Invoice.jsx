@@ -394,7 +394,7 @@ function Invoice() {
               <div className="mt-4 proof-wrapper">
                 <p className="proof-text text-sm text-gray-600 mb-2">Bukti Pembayaran Anda:</p>
                 <img
-                  src={p.proof_of_payment}
+                  href={p.proof_of_payment}
                   alt="Bukti Pembayaran"
                   className="proof-image w-full max-w-sm h-auto object-contain border border-gray-300 rounded-md shadow-sm"
                 />
@@ -408,7 +408,7 @@ function Invoice() {
         <div className="flex flex-col sm:flex-row justify-end gap-3 p-6 bg-gray-50 border-t border-gray-200">
           <button
             id="back-to-orders-button-user"
-            onClick={() => navigate('/user/orders')} 
+            onClick={() => navigate('/history')} 
             className="px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200 ease-in-out font-semibold shadow-sm w-full sm:w-auto"
           >
             Kembali ke Daftar Pesanan

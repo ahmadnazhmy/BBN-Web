@@ -90,7 +90,7 @@ const getOrderDetailByPaymentId = async (req, res) => {
     }
 
     const [payments] = await db.execute(
-      `SELECT order_id, user_id, payment_type, status, amount, payment_method, proof_of_payment_url, message
+      `SELECT order_id, user_id, payment_type, status, amount, payment_method, proof_of_payment, message
          FROM payment
          WHERE payment_id = ?`,
       [paymentId]
@@ -129,7 +129,7 @@ const getOrderDetailByPaymentId = async (req, res) => {
     );
 
     const [allPaymentsForOrder] = await db.execute(
-      `SELECT payment_id, order_id, user_id, amount, payment_type, status, payment_method, proof_of_payment_url, message
+      `SELECT payment_id, order_id, user_id, amount, payment_type, status, payment_method, proof_of_payment, message
          FROM payment
          WHERE order_id = ? AND user_id = ?
          ORDER BY created_at ASC`,
@@ -177,7 +177,7 @@ const getAllOrders = async (req, res) => {
       items = itemResults;
 
       const [paymentResults] = await db.query(
-        `SELECT payment_id, order_id, user_id, amount, payment_type, status, payment_method, proof_of_payment_url, message FROM payment WHERE order_id IN (?)`,
+        `SELECT payment_id, order_id, user_id, amount, payment_type, status, payment_method, proof_of_payment, message FROM payment WHERE order_id IN (?)`,
         [orderIds]
       );
       payments = paymentResults;
