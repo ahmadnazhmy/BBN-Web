@@ -49,6 +49,7 @@ function Product() {
         avg_weight_per_stick: product.avg_weight_per_stick !== null ? String(product.avg_weight_per_stick) : '',
         unit_price: product.unit_price !== null ? String(product.unit_price) : '',
         stock_change: '',
+        current_stock_for_correction: product.stock || 0,
         stock_note_source: ''
       });
     } else {
@@ -99,14 +100,17 @@ function Product() {
 
     if (isEdit) {
       if (formData.stock_note_source) {
-        payload.stock_change = parseNumberOrNull(formData.stock_change) || 0;
+        if (formData.stock_note_source === 'correction') {
+          const desiredFinalStock = parseNumberOrNull(formData.stock_change) || 0;
+          const actualStockChange = desiredFinalStock - formData.current_stock_for_correction;
+          payload.stock_change = actualStockChange;
+        } else {
+          payload.stock_change = parseNumberOrNull(formData.stock_change) || 0;
+        }
         payload.stock_note_source = formData.stock_note_source;
       }
-    } else {
-      payload.initial_stock = parseNumberOrNull(formData.initial_stock) || 0;
-      payload.source = formData.stock_note_source || 'initial';
     }
-
+    
     try {
       const res = await fetch(url, {
         method,

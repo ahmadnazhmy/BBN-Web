@@ -249,7 +249,7 @@ const updateOrderStatus = async (req, res) => {
     }
 
     const currentStatus = orderRows[0].status;
-    const userId = orderRows[0].user_id || null;
+    const userId = orderRows[0].user_id === undefined ? null : orderRows[0].user_id;
 
     if (['delivered', 'picked_up', 'cancel'].includes(currentStatus)) {
       await conn.rollback();
@@ -279,7 +279,7 @@ const updateOrderStatus = async (req, res) => {
           [item.product_id]
         );
 
-        const currentStock = stockRows[0].current_stock || 0; 
+        const currentStock = stockRows[0].current_stock || 0;
 
         if (currentStock < item.quantity) {
           await conn.rollback();
@@ -298,13 +298,12 @@ const updateOrderStatus = async (req, res) => {
     }
 
     const notifMessage = generateNotificationMessage(orderId, currentStatus, status);
-    if (notifMessage && userId !== null) { 
+    if (notifMessage && userId !== null) {
       await conn.execute(
         'INSERT INTO notification (user_id, order_id, message, is_read, created_at) VALUES (?, ?, ?, ?, NOW())',
         [userId, orderId, notifMessage, false]
       );
     } else if (notifMessage && userId === null) {
-
       console.warn(`Peringatan: Notifikasi untuk order ${orderId} (${notifMessage}) tidak dibuat karena user_id null.`);
     }
 
@@ -322,7 +321,6 @@ const updateOrderStatus = async (req, res) => {
 
     res.status(500).json({ error: 'Gagal update status order: ' + err.message });
   } finally {
-
     if (conn) {
       conn.release();
     }

@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 async function getDashboardSummary(req, res) {
   try {
-    const [ordersCountResult] = await db.query('SELECT COUNT(*) AS total_orders FROM `order`');
+    const [ordersCountResult] = await db.query('SELECT COUNT(*) AS total_orders FROM \`order\`');
     const totalOrders = ordersCountResult[0].total_orders;
     const [successfulRevenueResult] = await db.query(`
       SELECT IFNULL(SUM(o.total_price), 0) AS success_amount

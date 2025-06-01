@@ -19,7 +19,7 @@ async function getOrderPaymentDetailsWithItems(req, res) {
     if (paymentRows.length === 0) return res.status(404).json({ error: 'Payment tidak ditemukan' });
     const payment = paymentRows[0];
 
-    const [orderRows] = await pool.query('SELECT * FROM `order` WHERE order_id = ?', [payment.order_id]);
+    const [orderRows] = await pool.query('SELECT * FROM \`order\`WHERE order_id = ?', [payment.order_id]);
     if (orderRows.length === 0) return res.status(404).json({ error: 'Order tidak ditemukan' });
     const order = orderRows[0];
 
@@ -446,7 +446,7 @@ const createInvoiceSettlement = async (req, res) => {
   try {
     const { order_id, due_date } = req.body;
 
-    const [orders] = await db.query('SELECT total_price, user_id FROM `order` WHERE order_id = ?', [order_id]);
+    const [orders] = await db.query('SELECT total_price, user_id FROM \`order\` WHERE order_id = ?', [order_id]);
     if (orders.length === 0) {
       return res.status(404).json({ message: 'Order tidak ditemukan' });
     }
