@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faPen, faTrash, faEye, faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faPen, faTrash, faEye, faChevronDown, faXmark, faSearch } from '@fortawesome/free-solid-svg-icons';
 
 function Product() {
   const [products, setProducts] = useState([]);
@@ -14,6 +14,7 @@ function Product() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showStockModal, setShowStockModal] = useState(false);
   const [animateStockModal, setAnimateStockModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const API_BASE_URL = 'https://bbn-web-production.up.railway.app/api';
 
@@ -69,7 +70,7 @@ function Product() {
     setShowModal(true);
     setTimeout(() => {
       setAnimateProductModal(true);
-    }, 50); 
+    }, 50);
   };
 
   const closeModal = () => {
@@ -77,7 +78,7 @@ function Product() {
     setTimeout(() => {
       setShowModal(false);
       setFormData(null);
-    }, 300); 
+    }, 300);
   };
 
   const handleChange = (e) => {
@@ -117,6 +118,8 @@ function Product() {
         }
         payload.stock_note_source = formData.stock_note_source;
       }
+    } else {
+        payload.initial_stock = parseNumberOrNull(formData.initial_stock) || 0;
     }
     
     try {
@@ -191,6 +194,16 @@ function Product() {
     }, 300);
   };
 
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const filteredProducts = products.filter(product => {
+    const productName = `${product.product_name || ''} ${product.type || ''} ${product.thick !== null ? product.thick + ' mm' : ''} ${product.avg_weight_per_stick !== null ? product.avg_weight_per_stick + ' Kg' : ''}`.toLowerCase();
+    return productName.includes(searchTerm.toLowerCase());
+  });
+
+
   if (loading) return <div className="p-6 text-center text-lg">Memuat data produk...</div>;
   if (error) return <div className="p-6 text-center text-red-500 text-lg">Error: {error}</div>;
 
@@ -199,12 +212,24 @@ function Product() {
       <div className="p-4 mb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-800">Daftar Produk</h1>
-          <button
-            onClick={() => openModal()}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md transition-colors shadow"
-          >
-            <FontAwesomeIcon icon={faPlus} className="mr-2" /> Tambah Produk
-          </button>
+          <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+            <div className="relative w-full md:w-64">
+              <input
+                type="text"
+                placeholder="Cari nama produk..."
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
+              <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            </div>
+            <button
+              onClick={() => openModal()}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md transition-colors shadow w-full md:w-auto"
+            >
+              <FontAwesomeIcon icon={faPlus} className="mr-2" /> Tambah Produk
+            </button>
+          </div>
         </div>
         {notification.message && (
           <div className={`mt-4 px-4 py-2 rounded-md text-sm ${
@@ -221,30 +246,24 @@ function Product() {
             <thead className="bg-gray-100 sticky top-0 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">No</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700 w-[200px]">Nama Produk</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700 w-[200px]">Tipe</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700">Tebal</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700">Rata-rata Berat/Batang</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-700 w-[600px]">Nama Produk</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">Harga Satuan</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">Stok</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {products.length === 0 ? (
+              {filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="text-center py-8 text-gray-500">
                     Tidak ada produk ditemukan.
                   </td>
                 </tr>
               ) : (
-                products.map((product, index) => (
+                filteredProducts.map((product, index) => (
                   <tr key={product.product_id} className="border-b border-gray-200 even:bg-gray-50 hover:bg-gray-100 transition-colors">
                     <td className="px-4 py-3">{index + 1}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900">{product.product_name}</td>
-                    <td className="px-4 py-3">{product.type}</td>
-                    <td className="px-4 py-3">{product.thick} mm</td>
-                    <td className="px-4 py-3">{product.avg_weight_per_stick} Kg</td>
+                    <td className="px-4 py-3 font-semibold text-gray-900">{product.product_name} {product.type} {product.thick} mm {product.avg_weight_per_stick} Kg</td>
                     <td className="px-4 py-3 font-bold text-gray-900">Rp {product.unit_price.toLocaleString('id-ID')}</td>
                     <td className="px-4 py-3">{product.stock || 0}</td>
                     <td className="px-4 py-3">

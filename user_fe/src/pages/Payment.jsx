@@ -421,7 +421,7 @@ function Payment() {
                   }}
                   className="w-full border border-gray-300 rounded-md px-4 py-2.5 text-lg font-semibold text-gray-900 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                   placeholder="Masukkan jumlah pembayaran"
-                  disabled={paymentType === 'fullpayment' || paymentType === 'downpayment'}
+                  readOnly={paymentType === 'fullpayment' || paymentType === 'downpayment' || paymentType === 'settlement'}
                   required
                 />
               </div>
