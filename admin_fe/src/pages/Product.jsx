@@ -7,11 +7,13 @@ function Product() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [animateProductModal, setAnimateProductModal] = useState(false);
   const [formData, setFormData] = useState(null);
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [stockHistory, setStockHistory] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showStockModal, setShowStockModal] = useState(false);
+  const [animateStockModal, setAnimateStockModal] = useState(false);
 
   const API_BASE_URL = 'https://bbn-web-production.up.railway.app/api';
 
@@ -65,11 +67,17 @@ function Product() {
       });
     }
     setShowModal(true);
+    setTimeout(() => {
+      setAnimateProductModal(true);
+    }, 50); 
   };
 
   const closeModal = () => {
-    setShowModal(false);
-    setFormData(null);
+    setAnimateProductModal(false);
+    setTimeout(() => {
+      setShowModal(false);
+      setFormData(null);
+    }, 300); 
   };
 
   const handleChange = (e) => {
@@ -165,6 +173,9 @@ function Product() {
       setStockHistory(data);
       setSelectedProduct(product);
       setShowStockModal(true);
+      setTimeout(() => {
+        setAnimateStockModal(true);
+      }, 50);
     } catch (err) {
       console.error(err);
       showNotification(err.message, 'error');
@@ -172,9 +183,12 @@ function Product() {
   };
 
   const closeStockModal = () => {
-    setShowStockModal(false);
-    setSelectedProduct(null);
-    setStockHistory([]);
+    setAnimateStockModal(false);
+    setTimeout(() => {
+      setShowStockModal(false);
+      setSelectedProduct(null);
+      setStockHistory([]);
+    }, 300);
   };
 
   if (loading) return <div className="p-6 text-center text-lg">Memuat data produk...</div>;
@@ -268,7 +282,13 @@ function Product() {
 
       {showModal && formData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full relative p-6">
+          <div
+            className={`
+              bg-white rounded-lg shadow-xl max-w-lg w-full relative p-6
+              transition-all duration-300 ease-out transform
+              ${animateProductModal ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
+            `}
+          >
             <div className="flex justify-between items-center mb-6 border-b pb-3">
               <h3 className="text-xl md:text-2xl font-bold text-gray-800">
                 {formData.product_id ? 'Edit Produk' : 'Tambah Produk'}
@@ -418,7 +438,13 @@ function Product() {
 
       {showStockModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+          <div
+            className={`
+              bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative p-6
+              transition-all duration-300 ease-out transform
+              ${animateStockModal ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
+            `}
+          >
             <div className="flex justify-between items-center mb-6 border-b pb-3">
               <h3 className="text-xl md:text-2xl font-bold text-gray-800">
                 Riwayat Stok: {selectedProduct?.product_name}

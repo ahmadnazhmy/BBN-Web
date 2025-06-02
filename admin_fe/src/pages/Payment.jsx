@@ -17,8 +17,9 @@ function Payment() {
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [filterMonthYear, setFilterMonthYear] = useState(null);
   const [totalAmount, setTotalAmount] = useState(0);
-
+  
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [animateInvoiceModal, setAnimateInvoiceModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [orderDetail, setOrderDetail] = useState(null);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -284,21 +285,27 @@ function Payment() {
   };
 
   const openInvoiceModal = (payment) => {
-    setSelectedPayment(payment);
-    setSelectedOrderId(payment.order_id);
-    setShowInvoiceModal(true);
+      setSelectedPayment(payment);
+      setSelectedOrderId(payment.order_id);
+      setShowInvoiceModal(true);
+      setTimeout(() => {
+          setAnimateInvoiceModal(true);
+      }, 50);
   };
 
   const onCloseInvoiceModal = () => {
-    setShowInvoiceModal(false);
-    setSelectedPayment(null);
-    setOrderDetail(null);
-    setSelectedOrderId(null);
-    setFormData({
-      customerName: '',
-      dueDate: '',
-      totalAmount: 0,
-    });
+      setAnimateInvoiceModal(false);
+      setTimeout(() => {
+          setShowInvoiceModal(false);
+          setSelectedPayment(null);
+          setOrderDetail(null);
+          setSelectedOrderId(null);
+          setFormData({
+              customerName: '',
+              dueDate: '',
+              totalAmount: 0,
+          });
+      }, 300);
   };
 
   const handleExportPDF = () => {
@@ -519,7 +526,13 @@ function Payment() {
 
       {showInvoiceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg md:max-w-xl w-full relative p-6">
+          <div
+                className={`
+                    bg-white rounded-lg shadow-xl max-w-lg md:max-w-xl w-full relative p-6
+                    transition-all duration-300 ease-out transform
+                    ${animateInvoiceModal ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
+                `}
+            >
             <div className="flex justify-between items-center mb-6 border-b pb-3">
               <h3 className="text-xl md:text-2xl font-bold text-gray-800">Buat Invoice Pelunasan</h3>
               <button onClick={onCloseInvoiceModal} className="text-gray-500 hover:text-gray-800 transition-colors">

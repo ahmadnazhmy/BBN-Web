@@ -18,6 +18,7 @@ export default function Order() {
     const [filterMethod, setFilterMethod] = useState('all');
     const [filterMonthYear, setFilterMonthYear] = useState(null);
     const [selectedFiles, setSelectedFiles] = useState({});
+    const [showModalContent, setShowModalContent] = useState(false);
     const backendURL = 'https://bbn-web-production.up.railway.app';
 
     const statusLabels = {
@@ -231,8 +232,19 @@ export default function Order() {
         }
     };
 
-    const openModal = order => setSelectedOrder(order);
-    const closeModal = () => setSelectedOrder(null);
+     const openModal = order => {
+        setSelectedOrder(order);
+        setTimeout(() => {
+            setShowModalContent(true);
+        }, 50);
+    };
+
+    const closeModal = () => {
+        setShowModalContent(false);
+        setTimeout(() => {
+            setSelectedOrder(null);
+        }, 300);
+    };
 
     if (loading) return <div className="p-6 text-center text-lg">Memuat data pesanan...</div>;
     if (error) return <div className="p-6 text-center text-red-500 text-lg">Error: {error}</div>;
@@ -476,7 +488,13 @@ export default function Order() {
 
             {selectedOrder && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 p-4">
-                    <div className="bg-white rounded-lg shadow-xl max-w-lg md:max-w-3xl w-full max-h-[90vh] overflow-y-auto relative p-6">
+                    <div
+                        className={`
+                            bg-white rounded-lg shadow-xl max-w-lg md:max-w-3xl w-full max-h-[90vh] overflow-y-auto relative p-6
+                            transition-all duration-300 ease-out transform
+                            ${showModalContent ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
+                        `}
+                    >
                         <div className="flex justify-between items-center mb-6 border-b pb-3">
                             <h3 className="text-xl md:text-2xl font-bold text-gray-800">Detail Item Pesanan #{selectedOrder.order_id}</h3>
                             <button onClick={closeModal} className="text-gray-500 hover:text-gray-800 transition-colors">
