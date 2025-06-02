@@ -50,7 +50,7 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
 
       setNotifications((prev) => {
         const updatedNotifs = prev.map((notif) =>
-          notif.id === notificationId ? { ...notif, is_read: true } : notif
+          notif.notification_id === notificationId ? { ...notif, is_read: true } : notif
         );
         const newUnreadCount = updatedNotifs.filter(notif => !notif.is_read).length;
         setParentNotificationCount(newUnreadCount);
@@ -69,7 +69,7 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     if (!token) return;
 
     if (!notif.order_id) {
-        console.error("Error: Order ID is missing for confirmDelivery.");
+        console.error("Error: Order ID is missing for confirmDelivery on notification:", notif);
         alert("Gagal konfirmasi pengiriman: ID pesanan tidak ditemukan.");
         return;
     }
@@ -90,7 +90,7 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
       alert('Konfirmasi barang sampai berhasil!');
       setNotifications((prev) => {
         const updatedNotifs = prev.map((n) =>
-          n.id === notif.id ? { ...n, is_confirmed: true, is_read: true } : n
+          n.notification_id === notif.notification_id ? { ...n, is_confirmed: true, is_read: true } : n
         );
         const newUnreadCount = updatedNotifs.filter(notif => !notif.is_read).length;
         setParentNotificationCount(newUnreadCount);
@@ -137,7 +137,6 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (!isOpen) return;
-
       if (
         (dropdownRef.current && dropdownRef.current.contains(e.target)) ||
         (notificationButtonRef && notificationButtonRef.current && notificationButtonRef.current.contains(e.target))
@@ -183,7 +182,7 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
           <ul className="divide-y divide-gray-200">
             {notifications.map((notif) => (
               <li
-                key={notif.id}
+                key={notif.notification_id}
                 className={`p-4 ${notif.is_read ? 'bg-white text-gray-600' : 'bg-blue-50 text-gray-800'} hover:bg-gray-100 transition-colors duration-200`}
               >
                 <div className={`${notif.is_read ? 'font-normal' : 'font-semibold'} text-base leading-snug`}>
@@ -198,7 +197,7 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
                 <div className="flex flex-wrap gap-2 mt-3">
                   {!notif.is_read && (
                     <button
-                      onClick={(e) => markAsRead(notif.id, e)}
+                      onClick={(e) => markAsRead(notif.notification_id, e)}
                       className="text-blue-700 text-sm hover:underline font-medium py-1 px-2"
                     >
                       Tandai sudah dibaca
