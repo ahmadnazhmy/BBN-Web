@@ -198,9 +198,16 @@ function Product() {
     setSearchTerm(e.target.value);
   };
 
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   const filteredProducts = products.filter(product => {
-    const productName = `${product.product_name || ''} ${product.type || ''} ${product.thick !== null ? product.thick + ' mm' : ''} ${product.avg_weight_per_stick !== null ? product.avg_weight_per_stick + ' Kg' : ''}`.toLowerCase();
-    return productName.includes(searchTerm.toLowerCase());
+    const productName = `${product.product_name || ''} ${product.type || ''} ${product.thick !== null ? product.thick + ' mm' : ''} ${product.avg_weight_per_stick !== null ? product.avg_weight_per_stick + ' Kg' : ''}`;
+    const escapedSearchTerm = escapeRegExp(searchTerm);
+    const regex = new RegExp(escapedSearchTerm, 'i');
+
+    return regex.test(productName);
   });
 
 

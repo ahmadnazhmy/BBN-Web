@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+
 const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotificationCount }) => {
   const [notifications, setNotifications] = useState([]);
   const dropdownRef = useRef(null);
@@ -22,13 +23,19 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     }
   };
 
-  const markAsRead = async (id, event) => {
+  const markAsRead = async (notificationId, event) => {
     event.stopPropagation();
     const token = localStorage.getItem('token');
     if (!token) return;
 
+    if (!notificationId) {
+      console.error("Error: Notification ID is missing for markAsRead.");
+      alert("Gagal menandai notifikasi sebagai dibaca: ID notifikasi tidak ditemukan.");
+      return;
+    }
+
     try {
-      const res = await fetch(`https://bbn-web-production.up.railway.app/api/notification/${id}/read`, {
+      const res = await fetch(`https://bbn-web-production.up.railway.app/api/notification/${notificationId}/read`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,11 +43,14 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
         },
       });
 
-      if (!res.ok) throw new Error('Gagal menandai notifikasi sebagai dibaca');
+      if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Gagal menandai notifikasi sebagai dibaca');
+      }
 
       setNotifications((prev) => {
         const updatedNotifs = prev.map((notif) =>
-          notif.id === id ? { ...notif, is_read: true } : notif
+          notif.id === notificationId ? { ...notif, is_read: true } : notif
         );
         const newUnreadCount = updatedNotifs.filter(notif => !notif.is_read).length;
         setParentNotificationCount(newUnreadCount);
@@ -58,6 +68,12 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     const token = localStorage.getItem('token');
     if (!token) return;
 
+    if (!notif.order_id) {
+        console.error("Error: Order ID is missing for confirmDelivery.");
+        alert("Gagal konfirmasi pengiriman: ID pesanan tidak ditemukan.");
+        return;
+    }
+
     try {
       const res = await fetch(`https://bbn-web-production.up.railway.app/api/order/${notif.order_id}/confirm-delivery`, {
         method: 'POST',
@@ -66,7 +82,10 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error('Gagal konfirmasi pengiriman');
+      if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Gagal konfirmasi pengiriman');
+      }
 
       alert('Konfirmasi barang sampai berhasil!');
       setNotifications((prev) => {
@@ -96,7 +115,10 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('Gagal hapus semua notifikasi');
+      if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Gagal hapus semua notifikasi');
+      }
 
       setNotifications([]);
       setParentNotificationCount(0);
@@ -115,11 +137,12 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (!isOpen) return;
+
       if (
         (dropdownRef.current && dropdownRef.current.contains(e.target)) ||
         (notificationButtonRef && notificationButtonRef.current && notificationButtonRef.current.contains(e.target))
       ) {
-        return; 
+        return;
       }
       setIsOpen(false);
     };
@@ -129,7 +152,7 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, setIsOpen, notificationButtonRef]); 
+  }, [isOpen, setIsOpen, notificationButtonRef]);
 
   if (!isOpen) return null;
 
