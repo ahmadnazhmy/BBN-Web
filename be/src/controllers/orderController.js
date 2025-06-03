@@ -365,12 +365,39 @@ const updateOrderStatus = async (req, res) => {
                     });
                 }
 
-                const [stockRows] = await conn.execute(
-                    'SELECT SUM(quantity_change) AS current_stock FROM stock_history WHERE product_id = ? FOR UPDATE',
-                    [item.product_id]
-                );
+                const [[stockData]] = await conn.execute(`
+                    SELECT
+                        COALESCE(
+                            (SELECT sh.quantity_change
+                                FROM stock_history sh
+                                WHERE sh.product_id = ? AND sh.type = 'correction'
+                                ORDER BY sh.created_at DESC
+                                LIMIT 1),
+                            0) +
+                        COALESCE(
+                            (SELECT SUM(
+                                CASE
+                                    WHEN sh2.type = 'in' THEN sh2.quantity
+                                    WHEN sh2.type = 'out' THEN -sh2.quantity
+                                    ELSE 0
+                                END
+                            )
+                            FROM stock_history sh2
+                            WHERE sh2.product_id = ? AND sh2.created_at > COALESCE(
+                                (SELECT sh3.created_at
+                                    FROM stock_history sh3
+                                    WHERE sh3.product_id = ? AND sh3.type = 'correction'
+                                    ORDER BY sh3.created_at DESC
+                                    LIMIT 1), '1900-01-01'
+                            )
+                            ), 0
+                        ) AS current_stock
+                    FROM product
+                    WHERE product_id = ?
+                `, [item.product_id, item.product_id, item.product_id, item.product_id]);
 
-                const currentStock = stockRows[0].current_stock || 0;
+                const currentStock = parseInt(stockData?.current_stock) || 0;
+
 
                 if (currentStock < item.quantity) {
                     await conn.rollback();

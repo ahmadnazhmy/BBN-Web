@@ -249,10 +249,10 @@ const updateProduct = async (req, res) => {
                 SELECT
                     COALESCE(
                         (SELECT sh.quantity_change
-                           FROM stock_history sh
-                           WHERE sh.product_id = ? AND sh.type = 'correction'
-                           ORDER BY sh.created_at DESC
-                           LIMIT 1),
+                            FROM stock_history sh
+                            WHERE sh.product_id = ? AND sh.type = 'correction'
+                            ORDER BY sh.created_at DESC
+                            LIMIT 1),
                         0) +
                     COALESCE(
                         (SELECT SUM(
@@ -265,10 +265,10 @@ const updateProduct = async (req, res) => {
                         FROM stock_history sh2
                         WHERE sh2.product_id = ? AND sh2.created_at > COALESCE(
                             (SELECT sh3.created_at
-                               FROM stock_history sh3
-                               WHERE sh3.product_id = ? AND sh3.type = 'correction'
-                               ORDER BY sh3.created_at DESC
-                               LIMIT 1), '1900-01-01'
+                                FROM stock_history sh3
+                                WHERE sh3.product_id = ? AND sh3.type = 'correction'
+                                ORDER BY sh3.created_at DESC
+                                LIMIT 1), '1900-01-01'
                         )
                         ), 0
                     ) AS current_stock
@@ -284,16 +284,15 @@ const updateProduct = async (req, res) => {
 
             if (stock_note_source === 'correction') {
                 const desiredFinalStock = currentStock + changeAmount;
-
+                
                 if (desiredFinalStock < 0) {
                     await conn.rollback();
                     conn.release();
                     return res.status(400).json({ error: 'Stok setelah koreksi tidak boleh kurang dari 0.' });
                 }
                 historyType = 'correction';
-                quantityChangeForHistory = desiredFinalStock;
+                quantityChangeForHistory = desiredFinalStock; 
                 quantityForHistory = 0;
-
             } else if (stock_note_source === 'production') {
                 if (changeAmount > 0) {
                     historyType = 'in';
@@ -330,10 +329,10 @@ const updateProduct = async (req, res) => {
                 p.*,
                 COALESCE(
                     (SELECT sh.quantity_change
-                       FROM stock_history sh
-                       WHERE sh.product_id = p.product_id AND sh.type = 'correction'
-                       ORDER BY sh.created_at DESC
-                       LIMIT 1),
+                        FROM stock_history sh
+                        WHERE sh.product_id = p.product_id AND sh.type = 'correction'
+                        ORDER BY sh.created_at DESC
+                        LIMIT 1),
                     0) +
                 COALESCE(
                     (SELECT SUM(
@@ -346,10 +345,10 @@ const updateProduct = async (req, res) => {
                     FROM stock_history sh2
                     WHERE sh2.product_id = p.product_id AND sh2.created_at > COALESCE(
                         (SELECT sh3.created_at
-                           FROM stock_history sh3
-                           WHERE sh3.product_id = p.product_id AND sh3.type = 'correction'
-                           ORDER BY sh3.created_at DESC
-                           LIMIT 1), '1900-01-01'
+                            FROM stock_history sh3
+                            WHERE sh3.product_id = p.product_id AND sh3.type = 'correction'
+                            ORDER BY sh3.created_at DESC
+                            LIMIT 1), '1900-01-01'
                     )
                     ), 0
                 ) AS stock
