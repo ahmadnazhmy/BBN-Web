@@ -25,22 +25,21 @@ function Product() {
     }, duration);
   }, []);
 
-  const fetchProducts = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/product`);
-      if (!res.ok) throw new Error('Gagal mengambil data produk');
-      const data = await res.json();
-      setProducts(data);
-    } catch (err) {
-      setError('Terjadi kesalahan saat memuat produk');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/product`);
+        if (!res.ok) throw new Error('Gagal mengambil data produk');
+        const data = await res.json();
+        setProducts(data);
+      } catch (err) {
+        setError('Terjadi kesalahan saat memuat produk');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchProducts();
-  }, [fetchProducts]);
+  }, []);
 
   const openModal = (product = null) => {
     if (product) {
@@ -109,17 +108,31 @@ function Product() {
 
     if (isEdit) {
       if (formData.stock_note_source) {
+        const stockChangeValue = parseNumberOrNull(formData.stock_change);
+
         if (formData.stock_note_source === 'correction') {
-          payload.stock_change = parseNumberOrNull(formData.stock_change) || 0;
-          payload.stock_note_type = 'correction';
-        } else if (formData.stock_note_source === 'production') {
-          payload.stock_change = parseNumberOrNull(formData.stock_change) || 0;
-          payload.stock_note_type = payload.stock_change >= 0 ? 'in' : 'out';
+          if (stockChangeValue !== null && stockChangeValue < 0) {
+            showNotification('Stok setelah koreksi tidak boleh kurang dari 0.', 'error');
+            return;
+          }
+          const desiredFinalStock = stockChangeValue || 0;
+          const actualStockChange = desiredFinalStock - formData.current_stock_for_correction;
+          payload.stock_change = actualStockChange;
+
+        } else {
+          if (stockChangeValue !== null && stockChangeValue < 0) {
+            const amountOut = Math.abs(stockChangeValue);
+            if (formData.current_stock_for_correction < amountOut) {
+              showNotification(`Jumlah keluar (${amountOut}) melebihi stok yang tersedia (${formData.current_stock_for_correction}).`, 'error');
+              return;
+            }
+          }
+          payload.stock_change = stockChangeValue || 0;
         }
         payload.stock_note_source = formData.stock_note_source;
       }
     } else {
-      payload.initial_stock = parseNumberOrNull(formData.initial_stock) || 0;
+      payload.initial_stock = 0;
     }
 
     try {
@@ -133,8 +146,13 @@ function Product() {
         const errorData = await res.json();
         throw new Error(errorData.error || 'Gagal menyimpan data produk');
       }
+      const updatedProduct = await res.json();
 
-      await fetchProducts();
+      if (isEdit) {
+        setProducts(products.map(p => p.product_id === updatedProduct.product_id ? updatedProduct : p));
+      } else {
+        setProducts([...products, updatedProduct]);
+      }
 
       showNotification(isEdit ? 'Produk berhasil diedit' : 'Produk berhasil ditambahkan', 'success');
       closeModal();
@@ -201,7 +219,6 @@ function Product() {
 
     return regex.test(productName);
   });
-
 
   if (loading) return <div className="p-6 text-center text-lg">Memuat data produk...</div>;
   if (error) return <div className="p-6 text-center text-red-500 text-lg">Error: {error}</div>;
@@ -319,14 +336,30 @@ function Product() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nama Produk</label>
-                <input
-                  name="product_name"
-                  value={formData.product_name}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Contoh: Besi Beton Polos"
-                  required
-                />
+                <div className="relative">
+                  <select
+                    name="product_name"
+                    value={formData.product_name}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                    required
+                  >
+                    <option value="" disabled>Pilih Kategori Produk</option>
+                    <option value="CNP (Kanal C)">CNP (Kanal C)</option>
+                    <option value="Reng">Reng</option>
+                    <option value="Spandek">Spandek</option>
+                    <option value="Bondek">Bondek</option>
+                    <option value="Flatseat">Flatseat</option>
+                    <option value="Nok C">Nok C</option>
+                    <option value="Hollow">Hollow</option>
+                    <option value="Genteng Metal">Genteng Metal</option>
+                    <option value="Talang Juray">Talang Juray</option>
+                  </select>
+                  <FontAwesomeIcon
+                    icon={faChevronDown}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500"
+                  />
+                </div>
               </div>
 
               <div>
@@ -382,18 +415,7 @@ function Product() {
               </div>
 
               {!formData.product_id ? (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Stok Awal</label>
-                  <input
-                    type="number"
-                    min="0"
-                    name="initial_stock"
-                    value={formData.initial_stock}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Masukkan stok awal"
-                  />
-                </div>
+                null
               ) : (
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="w-full sm:w-48">
@@ -407,8 +429,8 @@ function Product() {
                         required={!!formData.stock_change && formData.stock_change !== ''}
                       >
                         <option value="" disabled>Pilih Sumber</option>
-                        <option value="production">Produksi (Masuk/Keluar)</option>
-                        <option value="correction">Koreksi (Total Stok)</option>
+                        <option value="production">Produksi</option>
+                        <option value="correction">Koreksi</option>
                       </select>
                       <FontAwesomeIcon
                         icon={faChevronDown}
