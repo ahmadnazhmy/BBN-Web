@@ -21,7 +21,7 @@ function Contact() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mt-6">
             <a
-              href="https://wa.me/0821-1231-4463"
+              href="https://wa.me/6282112314463"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-semibold rounded-md shadow-sm text-white bg-green-500 hover:bg-green-600 transition-colors duration-200 ease-in-out transform hover:scale-105"

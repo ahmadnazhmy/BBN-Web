@@ -42,7 +42,7 @@ function Footer() {
           <h4 className="text-xl font-semibold text-white mb-4">Media Sosial</h4>
           <div className="flex flex-col gap-3">
             <a
-              href="https://wa.me/0821-1231-4463"
+              href="https://wa.me/6282112314463"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center text-gray-300 hover:text-green-500 transition-colors duration-200 text-lg"
@@ -67,7 +67,7 @@ function Footer() {
 
       <div className="mb-8">
         <iframe
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.196929944743!2d106.5298910750796!3d-6.39498266255152!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69fb21932f913d%3A0x6335a9d2d091e488!2sKws%20Industri%20Pergudangan%20Blessindo%202!5e0!3m2!1sen!2sid!4v1717149942767!5m2!1sen!2sid"
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3964.1311590627043!2d106.5546501!3d-6.3242913!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69e34c568da5d5%3A0x342d2c8f7f1daeb1!2sPT.%20BERLIAN%20BAJA%20NUSANTARA!5e0!3m2!1sen!2sid!4v1717445600000!5m2!1sen!2sid"
           width="100%"
           height="300"
           style={{ border: 0 }}
