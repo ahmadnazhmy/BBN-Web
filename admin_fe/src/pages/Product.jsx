@@ -16,7 +16,7 @@ function Product() {
   const [animateStockModal, setAnimateStockModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const API_BASE_URL = 'https://bbn-web-production.up.railway.app';
+  const API_BASE_URL = 'https://bbn-web-production.up.railway.app/api';
 
   const showNotification = useCallback((msg, type = 'success', duration = 3000) => {
     setNotification({ message: msg, type });
