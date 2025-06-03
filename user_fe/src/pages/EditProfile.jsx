@@ -73,9 +73,9 @@ function EditProfile() {
       setError('Email tidak valid. Pastikan format email sudah benar.');
       return;
     }
-    if (!/^\d+$/.test(phone)) {
-        setError('Nomor Telepon tidak valid. Hanya angka yang diizinkan.');
-        return;
+    if (!/^\d+$/.test(phone) || phone.length < 12) {
+      setError('Nomor Telepon tidak valid. Pastikan hanya angka dan minimal 12 karakter.');
+      return;
     }
 
     setIsSubmitting(true);

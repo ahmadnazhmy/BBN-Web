@@ -16,7 +16,7 @@ function Product() {
   const [animateStockModal, setAnimateStockModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const API_BASE_URL = 'https://bbn-web-production.up.railway.app/api';
+  const API_BASE_URL = 'http://localhost:5000/api';
 
   const showNotification = useCallback((msg, type = 'success', duration = 3000) => {
     setNotification({ message: msg, type });
@@ -25,22 +25,22 @@ function Product() {
     }, duration);
   }, []);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/product`);
-        if (!res.ok) throw new Error('Gagal mengambil data produk');
-        const data = await res.json();
-        setProducts(data);
-      } catch (err) {
-        console.error(err);
-        setError('Terjadi kesalahan saat memuat produk');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/product`);
+      if (!res.ok) throw new Error('Gagal mengambil data produk');
+      const data = await res.json();
+      setProducts(data);
+    } catch (err) {
+      setError('Terjadi kesalahan saat memuat produk');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const openModal = (product = null) => {
     if (product) {
@@ -110,18 +110,18 @@ function Product() {
     if (isEdit) {
       if (formData.stock_note_source) {
         if (formData.stock_note_source === 'correction') {
-          const desiredFinalStock = parseNumberOrNull(formData.stock_change) || 0;
-          const actualStockChange = desiredFinalStock - formData.current_stock_for_correction;
-          payload.stock_change = actualStockChange;
-        } else {
           payload.stock_change = parseNumberOrNull(formData.stock_change) || 0;
+          payload.stock_note_type = 'correction';
+        } else if (formData.stock_note_source === 'production') {
+          payload.stock_change = parseNumberOrNull(formData.stock_change) || 0;
+          payload.stock_note_type = payload.stock_change >= 0 ? 'in' : 'out';
         }
         payload.stock_note_source = formData.stock_note_source;
       }
     } else {
-        payload.initial_stock = parseNumberOrNull(formData.initial_stock) || 0;
+      payload.initial_stock = parseNumberOrNull(formData.initial_stock) || 0;
     }
-    
+
     try {
       const res = await fetch(url, {
         method,
@@ -133,18 +133,12 @@ function Product() {
         const errorData = await res.json();
         throw new Error(errorData.error || 'Gagal menyimpan data produk');
       }
-      const updatedProduct = await res.json();
 
-      if (isEdit) {
-        setProducts(products.map(p => p.product_id === updatedProduct.product_id ? updatedProduct : p));
-      } else {
-        setProducts([...products, updatedProduct]);
-      }
+      await fetchProducts();
 
       showNotification(isEdit ? 'Produk berhasil diedit' : 'Produk berhasil ditambahkan', 'success');
       closeModal();
     } catch (err) {
-      console.error('Error submitting form:', err);
       showNotification(err.message, 'error');
     }
   };
@@ -162,7 +156,6 @@ function Product() {
         setProducts(products.filter(p => p.product_id !== productId));
         showNotification('Produk berhasil dihapus', 'success');
       } catch (err) {
-        console.error(err);
         showNotification('Terjadi kesalahan saat menghapus: ' + err.message, 'error');
       }
     }
@@ -180,7 +173,6 @@ function Product() {
         setAnimateStockModal(true);
       }, 50);
     } catch (err) {
-      console.error(err);
       showNotification(err.message, 'error');
     }
   };
@@ -415,8 +407,8 @@ function Product() {
                         required={!!formData.stock_change && formData.stock_change !== ''}
                       >
                         <option value="" disabled>Pilih Sumber</option>
-                        <option value="production">Produksi</option>
-                        <option value="correction">Koreksi</option>
+                        <option value="production">Produksi (Masuk/Keluar)</option>
+                        <option value="correction">Koreksi (Total Stok)</option>
                       </select>
                       <FontAwesomeIcon
                         icon={faChevronDown}

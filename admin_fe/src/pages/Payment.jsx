@@ -434,27 +434,27 @@ function Payment() {
                       <td className="px-4 py-3 text-center text-gray-600">
                         {p.payment_method ? formatPaymentMethod(p.payment_method) : <i className='text-gray-400'>Belum ada pembayaran</i>}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 w-32">
                         <div className="relative">
-                          <select
-                            className={`bg-white border border-gray-300 rounded-md px-2 py-1 pr-8 text-xs appearance-none w-full
-                              ${isStatusDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
-                            value={p.status}
-                            onChange={(e) => updateStatus(p.payment_id, e.target.value)}
-                            disabled={isStatusDisabled}
-                          >
-                            <option value="pending">{statusLabels.pending}</option>
-                            {p.payment_type === PaymentType.DOWNPAYMENT ? (
-                              <option value="dp_paid">{statusLabels.dp_paid}</option>
-                            ) : (
-                              <option value="completed">{statusLabels.completed}</option>
-                            )}
-                            <option value="failed">{statusLabels.failed}</option>
-                          </select>
-                          <FontAwesomeIcon
-                            icon={faChevronDown}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                          />
+                            <select
+                                className={`bg-white border border-gray-300 rounded-md px-2 py-1 pr-8 text-xs appearance-none w-full
+                                  ${isStatusDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
+                                value={p.status}
+                                onChange={(e) => updateStatus(p.payment_id, e.target.value)}
+                                disabled={isStatusDisabled}
+                            >
+                                <option value="pending">{statusLabels.pending}</option>
+                                {p.payment_type === PaymentType.DOWNPAYMENT ? (
+                                    <option value="dp_paid">{statusLabels.dp_paid}</option>
+                                ) : (
+                                    <option value="completed">{statusLabels.completed}</option>
+                                )}
+                                <option value="failed">{statusLabels.failed}</option>
+                            </select>
+                            <FontAwesomeIcon
+                                icon={faChevronDown}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                            />
                         </div>
                       </td>
                       <td className="px-4 py-3">

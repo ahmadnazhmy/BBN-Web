@@ -16,6 +16,7 @@ function Catalog() {
     {
       id: 1,
       name: 'Kanal C',
+      shortName: 'Kanal C',
       image: KanalC,
       description: `Kanal C Prima Inti Truss hadir sebagai solusi rangka bangunan yang kuat dan presisi.
 • Tersedia dalam berbagai ukuran dan ketebalan
@@ -27,10 +28,11 @@ Kanal C kami siap memenuhi kebutuhan proyek Anda, baik skala kecil maupun besar.
     {
       id: 2,
       name: 'Reng',
+      shortName: 'Reng',
       image: Reng,
       description: `Reng Prima Inti Truss, pilihan terbaik untuk rangka atap yang presisi dan tahan lama.
 • Tersedia dalam dua varian: R30 & R28
-• Ketebalan mulai dari 0.30 MM hingga 0.45 MM
+• Ketebihan mulai dari 0.30 MM hingga 0.45 MM
 • Material berkualitas dengan standar industri
 
 Ideal untuk:
@@ -41,6 +43,7 @@ Ideal untuk:
     {
       id: 3,
       name: 'Spandek',
+      shortName: 'Spandek',
       image: SpandekPolos,
       description: `Spandek Prima Inti Truss — kuat, ringan, dan tahan lama.
 • Desain bergelombang khas, efektif mengalirkan air
@@ -52,6 +55,7 @@ Pilihan tepat untuk atap bangunan yang tahan cuaca dan estetik.`,
     {
       id: 4,
       name: 'Bondek',
+      shortName: 'Bondek',
       image: Bondek,
       description: `Bondek/Floordeck Prima Inti Truss memberikan solusi terbaik untuk plat lantai beton yang kokoh.
 • Ketebalan mulai dari 0.55 MM hingga 0.75 MM
@@ -63,6 +67,7 @@ Dapatkan kekuatan dan efisiensi dalam satu produk.`,
     {
       id: 5,
       name: 'Hollow',
+      shortName: 'Hollow',
       image: Hollow,
       description: `Hollow Prima Inti Truss dirancang untuk kekuatan dan kemudahan instalasi.
 • Anti karat & korosi – ideal untuk area terbuka/lembap
@@ -73,7 +78,8 @@ Solusi struktural ringan dan andal untuk berbagai kebutuhan.`,
     },
     {
       id: 6,
-      name: 'Talang Jurai',
+      name: 'Talang Juray',
+      shortName: 'Talang Juray',
       image: TalangJuray,
       description: `Talang Jurai Prima Inti Truss untuk pengaliran air hujan yang efisien.
 • Tipe: Polos
@@ -86,6 +92,7 @@ Lindungi struktur bangunan Anda dari kebocoran dan kerusakan.`,
     {
       id: 7,
       name: 'Genteng Pasir',
+      shortName: 'Genteng Pasir',
       image: GentengPasir,
       description: `Genteng Pasir Prima Inti Truss menghadirkan tampilan premium dan perlindungan tahan cuaca.
 • Estetika elegan dengan permukaan bertekstur pasir
@@ -112,7 +119,7 @@ Solusi atap kuat, tahan lama, dan menawan.`,
             <div
               key={product.id}
               onClick={() => handleProductClick(product)}
-              className="flex-shrink-0 w-40 sm:w-48 md:w-auto group bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer overflow-hidden transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg"
+              className="flex-shrink-0 w-40 sm:w-48 md:w-auto group bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer overflow-hidden transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg relative" // Added 'relative' here
             >
               <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden">
                 <img
@@ -126,6 +133,9 @@ Solusi atap kuat, tahan lama, dan menawan.`,
                   {product.name}
                 </p>
               </div>
+              <div className="absolute bottom-0 left-0 bg-gray-100 bg-opacity-75 text-gray-600 text-xs font-semibold py-1 px-2 rounded-tr-lg">
+                {product.shortName}
+              </div>
             </div>
           ))}
         </div>
@@ -134,7 +144,6 @@ Solusi atap kuat, tahan lama, dan menawan.`,
       {selectedProduct && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/40 bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col md:flex-row relative transform scale-95 opacity-0 animate-scale-in">
-
             <button
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 transition-colors duration-200 z-10 p-2 rounded-full bg-white bg-opacity-70 hover:bg-opacity-100"
               onClick={closeModal}

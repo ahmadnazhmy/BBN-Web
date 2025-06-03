@@ -35,8 +35,8 @@ function Register() {
       setError('Email tidak valid. Pastikan format email sudah benar.');
       return;
     }
-    if (!phone.trim() || !/^\d+$/.test(phone)) {
-      setError('Nomor Telepon tidak valid. Hanya angka yang diizinkan.');
+    if (!phone.trim() || !/^\d+$/.test(phone) || phone.length < 12) {
+      setError('Nomor Telepon tidak valid. Pastikan hanya angka dan minimal 12 karakter.');
       return;
     }
     if (!address.trim()) {
