@@ -42,14 +42,14 @@ function Footer() {
           <h4 className="text-xl font-semibold text-white mb-4">Media Sosial</h4>
           <div className="flex flex-col gap-3">
             <a
-              href="https://wa.me/0813-8999-5199"
+              href="https://wa.me/0821-1231-4463"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center text-gray-300 hover:text-green-500 transition-colors duration-200 text-lg"
               aria-label="Chat with us on WhatsApp"
             >
               <FontAwesomeIcon icon={faWhatsapp} className="text-3xl mr-3" />
-              0813-8999-5199
+              0821-1231-4463
             </a>
             <a
               href="https://www.instagram.com/berlianbajanusantara/"
@@ -75,7 +75,7 @@ function Footer() {
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
           title="Lokasi PT. Berlian Baja Nusantara di Google Maps"
-          className="rounded-lg shadow-xl" 
+          className="rounded-lg shadow-xl"
         ></iframe>
       </div>
 
