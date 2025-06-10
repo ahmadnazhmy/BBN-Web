@@ -158,7 +158,7 @@ function History() {
         return (
             <>
                 <Nav />
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center p-4 md:px-24 md:py-12">
                     <FontAwesomeIcon icon={faSpinner} spin className="text-blue-600 text-4xl mb-4" />
                     <p className="text-lg text-gray-700">Memuat riwayat pesanan Anda...</p>
                 </div>
@@ -170,7 +170,7 @@ function History() {
         return (
             <>
                 <Nav />
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] text-red-600 p-4 text-center">
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center text-red-600 p-4 text-center md:px-24 md:py-12">
                     <p className="text-xl font-semibold mb-2">Terjadi Kesalahan!</p>
                     <p className="text-lg">{error}</p>
                     <button
@@ -187,7 +187,7 @@ function History() {
     return (
         <div>
             <Nav />
-            <div className="container mx-auto p-4 md:px-8 lg:px-16 py-8 min-h-[calc(100vh-80px)] bg-gradient-to-br from-blue-50 to-indigo-100">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:px-24 md:py-12">
                 <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-900">
                     Riwayat Pesanan Saya
                 </h2>
@@ -347,9 +347,9 @@ function History() {
                                     {showDeliveryInfo && entry.file_delivery_order && (
                                         <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
                                             <a href={entry.file_delivery_order}
-                                               target="_blank"
-                                               rel="noopener noreferrer"
-                                               className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-base font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-base font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
                                             >
                                                 Lihat File DO
                                             </a>
