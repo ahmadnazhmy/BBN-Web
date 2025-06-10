@@ -187,7 +187,7 @@ function History() {
     return (
         <div>
             <Nav />
-            <div className="container mx-auto p-4 md:px-8 lg:px-16 py-8 min-h-[calc(100vh-80px)]">
+            <div className="container mx-auto p-4 md:px-8 lg:px-16 py-8 min-h-[calc(100vh-80px)] bg-gradient-to-br from-blue-50 to-indigo-100">
                 <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-900">
                     Riwayat Pesanan Saya
                 </h2>

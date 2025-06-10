@@ -151,7 +151,7 @@ Total bayar: Rp${paymentType === 'downpayment' ? getDownPayment().toLocaleString
     return (
         <div>
             <Nav />
-            <div className="min-h-screen bg-gray-100 p-4 md:px-24 md:py-12">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:px-24 md:py-12">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-2 bg-white rounded-lg shadow-md p-5 sm:p-6 mb-6 md:mb-0">
                         <h2 className="text-xl sm:text-2xl font-bold mb-5 text-gray-800 text-center md:text-left">Keranjang Saya</h2>
