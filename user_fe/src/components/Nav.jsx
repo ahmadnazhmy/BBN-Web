@@ -230,6 +230,12 @@ export default function Nav() {
                     </span>
                   )}
                 </button>
+                <Notification
+                  isOpen={isNotifOpen}
+                  setIsOpen={setIsNotifOpen}
+                  notificationButtonRef={notificationButtonRef}
+                  setParentNotificationCount={setNotificationCount}
+                />
               </div>
               <Link to="/editprofile" className={navItemClass('/editprofile')} onClick={() => setIsMobileMenuOpen(false)}>
                 <FontAwesomeIcon icon={faUser} /> Profil
