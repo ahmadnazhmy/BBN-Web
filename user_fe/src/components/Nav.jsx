@@ -26,17 +26,17 @@ export default function Nav() {
     function handleClickOutsideMobileMenu(event) {
       if (
         mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) &&
-        !event.target.closest('.mobile-menu-toggle') 
+        !event.target.closest('.mobile-menu-toggle')
       ) {
         setIsMobileMenuOpen(false);
       }
     }
     if (isMobileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutsideMobileMenu);
-      document.body.style.overflow = 'hidden'; 
+      document.body.style.overflow = 'hidden';
     } else {
       document.removeEventListener('mousedown', handleClickOutsideMobileMenu);
-      document.body.style.overflow = 'unset'; 
+      document.body.style.overflow = 'unset';
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutsideMobileMenu);
@@ -51,7 +51,7 @@ export default function Nav() {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       if (isLoggedIn) {
-        const userId = localStorage.getItem('user_id'); 
+        const userId = localStorage.getItem('user_id');
         if (userId) {
           try {
             const response = await fetch('https://bbn-web-production.up.railway.app/api/notification/count', {
@@ -71,7 +71,7 @@ export default function Nav() {
             setNotificationCount(0);
           }
         } else {
-            setNotificationCount(0);
+          setNotificationCount(0);
         }
       } else {
         setNotificationCount(0);
@@ -118,7 +118,7 @@ export default function Nav() {
 
                 <div className="relative">
                   <button
-                    ref={notificationButtonRef} 
+                    ref={notificationButtonRef}
                     onClick={() => setIsNotifOpen(!isNotifOpen)}
                     className="relative flex items-center gap-2 p-2 rounded-md transition duration-300 hover:text-blue-700 hover:bg-gray-100 focus:outline-none"
                     aria-label="Notifikasi"
@@ -131,12 +131,14 @@ export default function Nav() {
                     )}
                     <span className="hidden lg:block">Notifikasi</span>
                   </button>
-                  <Notification
-                    isOpen={isNotifOpen}
-                    setIsOpen={setIsNotifOpen}
-                    notificationButtonRef={notificationButtonRef}
-                    setParentNotificationCount={setNotificationCount}
-                  />
+                  {!isMobileMenuOpen && (
+                    <Notification
+                      isOpen={isNotifOpen}
+                      setIsOpen={setIsNotifOpen}
+                      notificationButtonRef={notificationButtonRef}
+                      setParentNotificationCount={setNotificationCount}
+                    />
+                  )}
                 </div>
 
                 <Link to="/editprofile" className={navItemClass('/editprofile')}>
@@ -233,7 +235,7 @@ export default function Nav() {
                 <Notification
                   isOpen={isNotifOpen}
                   setIsOpen={setIsNotifOpen}
-                  notificationButtonRef={notificationButtonRef}
+                  notificationButtonRef={notificationButtonRef} // Pass the same ref
                   setParentNotificationCount={setNotificationCount}
                 />
               </div>
