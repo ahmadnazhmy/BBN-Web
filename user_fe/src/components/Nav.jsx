@@ -23,27 +23,6 @@ export default function Nav() {
   };
 
   useEffect(() => {
-    function handleClickOutsideNotif(event) {
-      if (
-        notifDropdownRef.current && !notifDropdownRef.current.contains(event.target) &&
-        notificationButtonRef.current && !notificationButtonRef.current.contains(event.target)
-      ) {
-        setIsNotifOpen(false);
-      }
-    }
-
-    if (isNotifOpen) {
-      document.addEventListener('mousedown', handleClickOutsideNotif);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutsideNotif);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutsideNotif);
-    };
-  }, [isNotifOpen]);
-
-  useEffect(() => {
     function handleClickOutsideMobileMenu(event) {
       if (
         mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) &&
