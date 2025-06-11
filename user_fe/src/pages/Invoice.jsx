@@ -253,7 +253,7 @@ function Invoice() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4 sm:p-8">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-8">
       <div className="w-full max-w-4xl bg-white border border-gray-200 shadow-lg rounded-lg overflow-hidden my-4">
         <div ref={invoiceRef} className="invoice-content p-6 sm:p-8 md:p-10">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-6 mb-6 border-gray-200">
