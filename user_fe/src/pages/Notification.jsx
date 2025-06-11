@@ -16,7 +16,6 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
       setNotifications(data);
       const unreadCount = data.filter(notif => !notif.is_read).length;
       setParentNotificationCount(unreadCount);
-
     } catch (err) {
       console.error('Gagal ambil notifikasi:', err);
       setParentNotificationCount(0);
@@ -44,8 +43,8 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
       });
 
       if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Gagal menandai notifikasi sebagai dibaca');
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Gagal menandai notifikasi sebagai dibaca');
       }
 
       setNotifications((prev) => {
@@ -69,9 +68,9 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     if (!token) return;
 
     if (!notif.order_id) {
-        console.error("Error: Order ID is missing for confirmDelivery on notification:", notif);
-        alert("Gagal konfirmasi pengiriman: ID pesanan tidak ditemukan.");
-        return;
+      console.error("Error: Order ID is missing for confirmDelivery on notification:", notif);
+      alert("Gagal konfirmasi pengiriman: ID pesanan tidak ditemukan.");
+      return;
     }
 
     try {
@@ -83,8 +82,8 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
         },
       });
       if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Gagal konfirmasi pengiriman');
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Gagal konfirmasi pengiriman');
       }
 
       alert('Konfirmasi barang sampai berhasil!');
@@ -116,8 +115,8 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Gagal hapus semua notifikasi');
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Gagal hapus semua notifikasi');
       }
 
       setNotifications([]);
@@ -130,7 +129,7 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
 
   useEffect(() => {
     if (isOpen) {
-        fetchNotifications();
+      fetchNotifications();
     }
   }, [isOpen]);
 
@@ -156,68 +155,74 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
   if (!isOpen) return null;
 
   return (
-    <div
-      ref={dropdownRef}
-      className="
-        fixed top-16 right-4
-        w-[calc(100vw-32px)] max-w-md min-w-[240px]
-        max-h-[70vh] overflow-y-auto
-        bg-white border border-gray-200 shadow-lg rounded-lg z-50 text-left
-        md:top-auto md:right-0 md:mt-2 md:w-96 md:left-auto
-      "
-    >
-      {notifications.length === 0 ? (
-        <div className="p-4 text-gray-500 text-center">Tidak ada notifikasi baru.</div>
-      ) : (
-        <>
-          <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
-            <span className="font-bold text-lg">Notifikasi</span>
-            <button
-              onClick={deleteAllNotifications}
-              className="text-red-600 text-sm hover:text-red-800 transition-colors duration-200"
-            >
-              Hapus Semua
-            </button>
-          </div>
-          <ul className="divide-y divide-gray-200">
-            {notifications.map((notif) => (
-              <li
-                key={notif.notification_id}
-                className={`p-4 ${notif.is_read ? 'bg-white text-gray-600' : 'bg-blue-50 text-gray-800'} hover:bg-gray-100 transition-colors duration-200`}
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-30 z-40" onClick={() => setIsOpen(false)}></div>
+
+      <div
+        ref={dropdownRef}
+        className={`
+          fixed top-16 right-4
+          w-[calc(100vw-32px)] max-w-md min-w-[240px]
+          max-h-[70vh] overflow-y-auto
+          bg-white border border-gray-200 shadow-lg rounded-lg z-50 text-left
+          transform transition-transform duration-200 ease-out
+          ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}
+          md:top-auto md:right-0 md:mt-2 md:w-96 md:left-auto
+        `}
+      >
+        {notifications.length === 0 ? (
+          <div className="p-4 text-gray-500 text-center">Tidak ada notifikasi baru.</div>
+        ) : (
+          <>
+            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
+              <span className="font-bold text-lg">Notifikasi</span>
+              <button
+                onClick={deleteAllNotifications}
+                className="text-red-600 text-sm hover:text-red-800 transition-colors duration-200"
               >
-                <div className={`${notif.is_read ? 'font-normal' : 'font-semibold'} text-base leading-snug`}>
-                  {notif.message}
-                </div>
-                <div className="text-xs text-gray-400 mt-1">
-                  {new Date(notif.created_at).toLocaleString('id-ID', {
-                    year: 'numeric', month: 'short', day: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                  })}
-                </div>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {!notif.is_read && (
-                    <button
-                      onClick={(e) => markAsRead(notif.notification_id, e)}
-                      className="text-blue-700 text-sm hover:underline font-medium py-1 px-2"
-                    >
-                      Tandai sudah dibaca
-                    </button>
-                  )}
-                  {notif.message?.includes('sedang diantar') && !notif.is_confirmed && (
-                    <button
-                      onClick={(e) => confirmDelivery(notif, e)}
-                      className="bg-green-600 hover:bg-green-700 text-white text-sm rounded-md px-3 py-2 transition-colors duration-200"
-                    >
-                      Konfirmasi Barang Sampai
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
+                Hapus Semua
+              </button>
+            </div>
+            <ul className="divide-y divide-gray-200">
+              {notifications.map((notif) => (
+                <li
+                  key={notif.notification_id}
+                  className={`p-4 ${notif.is_read ? 'bg-white text-gray-600' : 'bg-blue-50 text-gray-800'} hover:bg-gray-100 transition-colors duration-200`}
+                >
+                  <div className={`${notif.is_read ? 'font-normal' : 'font-semibold'} text-base leading-snug`}>
+                    {notif.message}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {new Date(notif.created_at).toLocaleString('id-ID', {
+                      year: 'numeric', month: 'short', day: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    })}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {!notif.is_read && (
+                      <button
+                        onClick={(e) => markAsRead(notif.notification_id, e)}
+                        className="text-blue-700 text-sm hover:underline font-medium py-1 px-2"
+                      >
+                        Tandai sudah dibaca
+                      </button>
+                    )}
+                    {notif.message?.includes('sedang diantar') && !notif.is_confirmed && (
+                      <button
+                        onClick={(e) => confirmDelivery(notif, e)}
+                        className="bg-green-600 hover:bg-green-700 text-white text-sm rounded-md px-3 py-2 transition-colors duration-200"
+                      >
+                        Konfirmasi Barang Sampai
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+    </>
   );
 };
 
