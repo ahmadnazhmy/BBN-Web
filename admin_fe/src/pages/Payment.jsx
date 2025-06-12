@@ -339,8 +339,10 @@ function Payment() {
         minute: "2-digit",
     });
 
-    const totalAmount = filteredPayments.filter(p => p.status === 'Selesai' || p.status === 'DP Dibayar') 
-                                        .reduce((sum, p) => sum + p.amount, 0);
+    const totalAmount = filteredPayments
+        .filter(p => p.status === 'Selesai' || p.status === 'DP Dibayar')
+        .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0); 
+
     const drawHeader = (docInstance, includeLogo = true) => {
         docInstance.setFontSize(12);
         docInstance.setFont("helvetica", "bold");
