@@ -320,10 +320,9 @@ function Payment() {
           return;
       }
 
-      // Set to landscape mode
       const doc = new jsPDF('landscape');
-      const pageWidth = doc.internal.pageSize.getWidth(); // Get updated width for landscape
-      const pageHeight = doc.internal.pageSize.getHeight(); // Get updated height for landscape
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight(); 
 
       const selectedMonthNumber = filterMonthYear ? getMonth(filterMonthYear) + 1 : new Date().getMonth() + 1;
       const selectedYear = filterMonthYear ? getYear(filterMonthYear) : new Date().getFullYear();
@@ -344,7 +343,7 @@ function Payment() {
       img.src = LogoImage;
 
       img.onload = () => {
-          doc.addImage(img, "PNG", 14, 10, 20, 20); // Logo position
+          doc.addImage(img, "PNG", 14, 10, 20, 20);
 
           doc.setFontSize(12);
           doc.setFont("helvetica", "bold");

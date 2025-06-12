@@ -7,7 +7,7 @@ import { getMonth, getYear } from 'date-fns';
 import { id } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import LogoImage from '../assets/logo2.png';
+import LogoImage from '../assets/images/logo2.png';
 
 export default function Order() {
     const [orders, setOrders] = useState([]);
