@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faXmark } from '@fortawesome/free-solid-svg-icons';
 
 const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotificationCount }) => {
   const [notifications, setNotifications] = useState([]);
@@ -134,25 +136,6 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (!isOpen) return;
-      if (
-        (dropdownRef.current && dropdownRef.current.contains(e.target)) ||
-        (notificationButtonRef && notificationButtonRef.current && notificationButtonRef.current.contains(e.target))
-      ) {
-        return;
-      }
-      setIsOpen(false);
-    };
-
-    document.addEventListener('click', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [isOpen, setIsOpen, notificationButtonRef]);
-
   if (!isOpen) return null;
 
   return (
@@ -167,17 +150,38 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
       "
     >
       {notifications.length === 0 ? (
-        <div className="p-4 text-gray-500 text-center">Tidak ada notifikasi baru.</div>
+        <div className="p-4 text-gray-500 text-center">
+          <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
+            <span className="font-bold text-lg">Notifikasi</span>
+            <button
+              onClick={() => setIsOpen(false)} 
+              className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
+              aria-label="Tutup notifikasi"
+            >
+              <FontAwesomeIcon icon={faXmark} className="text-xl" />
+            </button>
+          </div>
+          <div className="p-4 text-gray-500 text-center">Tidak ada notifikasi baru.</div>
+        </div>
       ) : (
         <>
           <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
             <span className="font-bold text-lg">Notifikasi</span>
-            <button
-              onClick={deleteAllNotifications}
-              className="text-red-600 text-sm hover:text-red-800 transition-colors duration-200"
-            >
-              Hapus Semua
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={deleteAllNotifications}
+                className="text-red-600 text-sm hover:text-red-800 transition-colors duration-200"
+              >
+                Hapus Semua
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                aria-label="Tutup notifikasi"
+              >
+                <FontAwesomeIcon icon={faTimes} className="text-xl" />
+              </button>
+            </div>
           </div>
           <ul className="divide-y divide-gray-200">
             {notifications.map((notif) => (

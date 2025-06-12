@@ -7,6 +7,7 @@ import { getMonth, getYear } from 'date-fns';
 import { id } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import LogoImage from '../assets/logo2.png';
 
 export default function Order() {
     const [orders, setOrders] = useState([]);
@@ -110,36 +111,252 @@ export default function Order() {
     };
 
     const handleExportPDF = () => {
-        const doc = new jsPDF();
-        doc.setFontSize(14);
-        doc.text("Daftar Pesanan", 14, 20);
+        const getMonthName = (monthNumber) => {
+            const date = new Date(2000, monthNumber - 1, 1);
+            return date.toLocaleString("id-ID", { month: "long" });
+        };
 
-        const tableData = filteredOrders.map((order, index) => [
-            index + 1,
-            order.order_id,
-            order.shop_name,
-            new Date(order.order_date).toLocaleDateString('id-ID', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-            }),
-            statusLabels[order.status] || order.status,
-            getPaymentStatus(order), 
-            `Rp ${order.total_price.toLocaleString('id-ID')}`,
-            order.delivery_method === 'delivery' ? 'Antar' : 'Ambil',
-            order.location,
-        ]);
+        if (!filteredPayments || filteredPayments.length === 0) {
+            showNotification("Tidak ada pembayaran untuk diekspor.", 'error');
+            return;
+        }
 
-        autoTable(doc, {
-            startY: 30,
-            head: [['No', 'ID Pesanan', 'Nama Toko', 'Tanggal', 'Status Pesanan', 'Status Pembayaran', 'Total', 'Metode', 'Lokasi']],
-            body: tableData,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [41, 128, 185] },
+        const doc = new jsPDF('landscape');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        const selectedMonthNumber = filterMonthYear ? getMonth(filterMonthYear) + 1 : new Date().getMonth() + 1;
+        const selectedYear = filterMonthYear ? getYear(filterMonthYear) : new Date().getFullYear();
+        const bulan = getMonthName(selectedMonthNumber);
+
+        const now = new Date();
+        const tanggalCetak = now.toLocaleDateString("id-ID", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+        });
+        const jamCetak = now.toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
         });
 
-        doc.save('daftar-pesanan.pdf');
-        showNotification('Laporan PDF berhasil diunduh.', 'success');
+        const img = new Image();
+        img.src = LogoImage;
+
+        img.onload = () => {
+            doc.addImage(img, "PNG", 14, 10, 20, 20); 
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Berlian Baja Nusantara", 38, 15);
+
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+
+            const addressText = "Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820";
+            const addressStartY = 19;
+            const splitAddress = doc.splitTextToSize(addressText, pageWidth / 3 - 10);
+            doc.text(splitAddress, 38, addressStartY);
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Laporan Pembayaran", pageWidth - 14, 15, {
+                align: "right",
+            });
+
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Bulan: ${bulan} ${selectedYear}`, pageWidth - 14, 20, { align: "right" });
+            doc.text(
+                `Tanggal Cetak: ${tanggalCetak} pukul ${jamCetak}`,
+                pageWidth - 14,
+                25,
+                {
+                    align: "right",
+                }
+            );
+
+            const addressLinesHeight = splitAddress.length * doc.internal.getLineHeight();
+            const addressBottomY = addressStartY + addressLinesHeight;
+            const reportInfoBottomY = 25; 
+            const finalYForHeader = Math.max(addressBottomY, reportInfoBottomY);
+
+            doc.setLineWidth(0.5);
+            const lineOffset = 0;
+            doc.line(14, finalYForHeader + lineOffset, pageWidth - 14, finalYForHeader + lineOffset);
+
+            const tableHeaders = [
+                'No',
+                'ID Pesanan',
+                'Nama Toko',
+                'Jumlah',
+                'Tipe Pembayaran',
+                'Metode Pembayaran',
+                'Status',
+                'Tanggal Dibuat',
+                'Tanggal Verifikasi',
+                'Jatuh Tempo',
+            ];
+
+            const tableData = filteredPayments.map((p, index) => [
+                index + 1,
+                p.order_id,
+                p.shop_name,
+                `Rp ${p.amount.toLocaleString('id-ID')}`,
+                formatPaymentType(p.payment_type),
+                formatPaymentMethod(p.payment_method),
+                statusLabels[p.status] || p.status,
+                format(new Date(p.created_at), "dd/MM/yyyy HH:mm", { locale: id }),
+                p.verified_at ? format(new Date(p.verified_at), "dd/MM/yyyy HH:mm", { locale: id }) : '-',
+                p.due_date ? format(new Date(p.due_date), 'dd/MM/yyyy', { locale: id }) : '-',
+            ]);
+
+            const tableLeftMargin = 14;
+            const tableRightMargin = 14;
+            const availableTableWidth = pageWidth - tableLeftMargin - tableRightMargin;
+
+            const columnWidths = {
+                0: availableTableWidth * 0.03,
+                1: availableTableWidth * 0.09,
+                2: availableTableWidth * 0.15,
+                3: availableTableWidth * 0.10,
+                4: availableTableWidth * 0.10,
+                5: availableTableWidth * 0.10,
+                6: availableTableWidth * 0.08,
+                7: availableTableWidth * 0.12,
+                8: availableTableWidth * 0.12,
+                9: availableTableWidth * 0.11,
+            };
+
+            autoTable(doc, {
+                startY: finalYForHeader + 2,
+                head: [tableHeaders],
+                body: tableData,
+                styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+                headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
+                columnStyles: {
+                    0: { cellWidth: columnWidths[0] },
+                    1: { cellWidth: columnWidths[1] },
+                    2: { cellWidth: columnWidths[2] },
+                    3: { cellWidth: columnWidths[3] },
+                    4: { cellWidth: columnWidths[4] },
+                    5: { cellWidth: columnWidths[5] },
+                    6: { cellWidth: columnWidths[6] },
+                    7: { cellWidth: columnWidths[7] },
+                    8: { cellWidth: columnWidths[8] },
+                    9: { cellWidth: columnWidths[9] },
+                },
+                margin: { left: tableLeftMargin, right: tableRightMargin },
+                didDrawPage: function(data) {
+                    doc.setFontSize(8);
+                    doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                }
+            });
+
+            let finalY;
+            if (doc.autoTable && doc.autoTable.previous && doc.autoTable.previous.finalY !== undefined) {
+                finalY = doc.autoTable.previous.finalY;
+            } else {
+                finalY = finalYForHeader + 20;
+            }
+
+            doc.setFontSize(10);
+            doc.text(`Total Pembayaran (Status Selesai/DP Dibayar): Rp ${totalAmount.toLocaleString('id-ID')}`, 14, finalY + 15);
+
+            doc.save("Laporan_Pembayaran.pdf");
+            showNotification('Laporan PDF berhasil diunduh.', 'success');
+        };
+
+        img.onerror = () => {
+            showNotification("Gagal memuat logo untuk ekspor PDF. Mencoba membuat laporan tanpa logo.", 'error');
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Berlian Baja Nusantara", 14, 15);
+            doc.setFontSize(9);
+            const addressStartY = 19;
+            doc.text("Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820", 14, addressStartY);
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Laporan Pembayaran", pageWidth - 14, 15, { align: "right" });
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Bulan: ${bulan} ${selectedYear}`, pageWidth - 14, 20, { align: "right" });
+            doc.text(`Tanggal Cetak: ${tanggalCetak} pukul ${jamCetak}`, pageWidth - 14, 25, { align: "right" });
+            const headerOffset = addressStartY + 20; 
+            doc.setLineWidth(0.5);
+            doc.line(14, headerOffset + 0, pageWidth - 14, headerOffset + 0);
+
+            const tableHeaders = [
+                'No', 'ID Pesanan', 'Nama Toko', 'Jumlah', 'Tipe Pembayaran',
+                'Metode Pembayaran', 'Status', 'Tanggal Dibuat', 'Tanggal Verifikasi', 'Jatuh Tempo',
+            ];
+            const tableData = filteredPayments.map((p, index) => [
+                index + 1,
+                p.order_id,
+                p.shop_name,
+                `Rp ${p.amount.toLocaleString('id-ID')}`,
+                formatPaymentType(p.payment_type),
+                formatPaymentMethod(p.payment_method),
+                statusLabels[p.status] || p.status,
+                format(new Date(p.created_at), "dd/MM/yyyy HH:mm", { locale: id }),
+                p.verified_at ? format(new Date(p.verified_at), "dd/MM/yyyy HH:mm", { locale: id }) : '-',
+                p.due_date ? format(new Date(p.due_date), 'dd/MM/yyyy', { locale: id }) : '-',
+            ]);
+
+            const tableLeftMargin = 14;
+            const tableRightMargin = 14;
+            const availableTableWidth = pageWidth - tableLeftMargin - tableRightMargin;
+
+            const columnWidths = {
+                0: availableTableWidth * 0.03,
+                1: availableTableWidth * 0.09,
+                2: availableTableWidth * 0.15,
+                3: availableTableWidth * 0.10,
+                4: availableTableWidth * 0.10,
+                5: availableTableWidth * 0.10,
+                6: availableTableWidth * 0.08,
+                7: availableTableWidth * 0.12,
+                8: availableTableWidth * 0.12,
+                9: availableTableWidth * 0.11,
+            };
+
+            autoTable(doc, {
+                startY: headerOffset + 2,
+                head: [tableHeaders],
+                body: tableData,
+                styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+                headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
+                columnStyles: {
+                    0: { cellWidth: columnWidths[0] },
+                    1: { cellWidth: columnWidths[1] },
+                    2: { cellWidth: columnWidths[2] },
+                    3: { cellWidth: columnWidths[3] },
+                    4: { cellWidth: columnWidths[4] },
+                    5: { cellWidth: columnWidths[5] },
+                    6: { cellWidth: columnWidths[6] },
+                    7: { cellWidth: columnWidths[7] },
+                    8: { cellWidth: columnWidths[8] },
+                    9: { cellWidth: columnWidths[9] },
+                },
+                margin: { left: tableLeftMargin, right: tableRightMargin },
+                didDrawPage: function(data) {
+                    doc.setFontSize(8);
+                    doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                }
+            });
+
+            let finalYError;
+            if (doc.autoTable && doc.autoTable.previous && doc.autoTable.previous.finalY !== undefined) {
+                finalYError = doc.autoTable.previous.finalY;
+            } else {
+                finalYError = headerOffset + 20;
+            }
+            doc.setFontSize(10);
+            doc.text(`Total Pembayaran (Status Selesai/DP Dibayar): Rp ${totalAmount.toLocaleString('id-ID')}`, 14, finalYError + 15);
+
+            doc.save("Laporan_Pembayaran.pdf");
+        };
     };
 
     const updateStatus = async (orderId, newStatus) => {
