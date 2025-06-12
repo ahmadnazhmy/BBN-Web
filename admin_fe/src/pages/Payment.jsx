@@ -320,9 +320,10 @@ function Payment() {
           return;
       }
 
+      // Set to landscape mode
       const doc = new jsPDF('landscape');
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
+      const pageWidth = doc.internal.pageSize.getWidth(); // Get updated width for landscape
+      const pageHeight = doc.internal.pageSize.getHeight(); // Get updated height for landscape
 
       const selectedMonthNumber = filterMonthYear ? getMonth(filterMonthYear) + 1 : new Date().getMonth() + 1;
       const selectedYear = filterMonthYear ? getYear(filterMonthYear) : new Date().getFullYear();
@@ -343,7 +344,7 @@ function Payment() {
       img.src = LogoImage;
 
       img.onload = () => {
-          doc.addImage(img, "PNG", 14, 10, 20, 20); 
+          doc.addImage(img, "PNG", 14, 10, 20, 20); // Logo position
 
           doc.setFontSize(12);
           doc.setFont("helvetica", "bold");
@@ -353,9 +354,8 @@ function Payment() {
           doc.setFont("helvetica", "normal");
 
           const addressText = "Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820";
-          const addressStartY = 19; 
           const splitAddress = doc.splitTextToSize(addressText, pageWidth / 3 - 10);
-          doc.text(splitAddress, 38, addressStartY);
+          doc.text(splitAddress, 38, 20);
 
           doc.setFontSize(12);
           doc.setFont("helvetica", "bold");
@@ -376,13 +376,12 @@ function Payment() {
           );
 
           const addressLinesHeight = splitAddress.length * doc.internal.getLineHeight();
-          const addressBottomY = addressStartY + addressLinesHeight;
+          const addressBottomY = 20 + addressLinesHeight;
           const reportInfoBottomY = 25;
           const finalYForHeader = Math.max(addressBottomY, reportInfoBottomY);
 
           doc.setLineWidth(0.5);
-          const lineOffset = 0;
-          doc.line(14, finalYForHeader + lineOffset, pageWidth - 14, finalYForHeader + lineOffset);
+          doc.line(14, finalYForHeader + 1, pageWidth - 14, finalYForHeader + 1);
 
           const tableHeaders = [
               'No',
@@ -416,19 +415,19 @@ function Payment() {
 
           const columnWidths = {
               0: availableTableWidth * 0.03,
-              1: availableTableWidth * 0.09,
-              2: availableTableWidth * 0.15,
-              3: availableTableWidth * 0.10,
-              4: availableTableWidth * 0.10,
-              5: availableTableWidth * 0.10,
-              6: availableTableWidth * 0.08,
-              7: availableTableWidth * 0.12,
-              8: availableTableWidth * 0.12,
-              9: availableTableWidth * 0.11,
+              1: availableTableWidth * 0.09, 
+              2: availableTableWidth * 0.15, 
+              3: availableTableWidth * 0.10, 
+              4: availableTableWidth * 0.10,  
+              5: availableTableWidth * 0.10, 
+              6: availableTableWidth * 0.08,  
+              7: availableTableWidth * 0.12,  
+              8: availableTableWidth * 0.12,  
+              9: availableTableWidth * 0.11,  
           };
 
           autoTable(doc, {
-              startY: finalYForHeader + 2, 
+              startY: finalYForHeader + 3,
               head: [tableHeaders],
               body: tableData,
               styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
@@ -445,7 +444,7 @@ function Payment() {
                   8: { cellWidth: columnWidths[8] },
                   9: { cellWidth: columnWidths[9] },
               },
-              margin: { left: tableLeftMargin, right: tableRightMargin },
+              margin: { left: tableLeftMargin, right: tableRightMargin }, 
               didDrawPage: function(data) {
                   doc.setFontSize(8);
                   doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
@@ -468,13 +467,11 @@ function Payment() {
 
       img.onerror = () => {
           showNotification("Gagal memuat logo untuk ekspor PDF. Mencoba membuat laporan tanpa logo.", 'error');
-
           doc.setFontSize(12);
           doc.setFont("helvetica", "bold");
           doc.text("Berlian Baja Nusantara", 14, 15);
           doc.setFontSize(9);
-          const addressStartY = 19;
-          doc.text("Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820", 14, addressStartY);
+          doc.text("Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820", 14, 20);
 
           doc.setFontSize(12);
           doc.setFont("helvetica", "bold");
@@ -483,9 +480,10 @@ function Payment() {
           doc.setFont("helvetica", "normal");
           doc.text(`Bulan: ${bulan} ${selectedYear}`, pageWidth - 14, 20, { align: "right" });
           doc.text(`Tanggal Cetak: ${tanggalCetak} pukul ${jamCetak}`, pageWidth - 14, 25, { align: "right" });
-          const headerOffset = addressStartY + 20; 
+
+          const headerOffset = 40;
           doc.setLineWidth(0.5);
-          doc.line(14, headerOffset + 0, pageWidth - 14, headerOffset + 0);
+          doc.line(14, headerOffset - 1, pageWidth - 14, headerOffset - 1);
 
           const tableHeaders = [
               'No', 'ID Pesanan', 'Nama Toko', 'Jumlah', 'Tipe Pembayaran',
@@ -522,7 +520,7 @@ function Payment() {
           };
 
           autoTable(doc, {
-              startY: headerOffset + 2,
+              startY: headerOffset + 3,
               head: [tableHeaders],
               body: tableData,
               styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
