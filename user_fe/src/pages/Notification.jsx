@@ -153,10 +153,25 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     }
   }, [isOpen]);
 
-  const transitionClasses = isOpen
-    ? 'opacity-100 translate-y-0'
-    : 'opacity-0 -translate-y-2'; 
-  if (!isOpen && transitionClasses.includes('opacity-0')) return null;
+  const animationClasses = isOpen
+    ? 'opacity-100 scale-y-100'
+    : 'opacity-0 scale-y-0';   
+  const [shouldRender, setShouldRender] = useState(isOpen);
+
+  useEffect(() => {
+    let timeoutId;
+    if (isOpen) {
+      setShouldRender(true);
+    } else {
+      timeoutId = setTimeout(() => {
+        setShouldRender(false);
+      }, 300);
+    }
+    return () => clearTimeout(timeoutId);
+  }, [isOpen]);
+
+  if (!shouldRender) return null;
+
 
   return (
     <div
@@ -167,7 +182,8 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
         max-h-[70vh] overflow-y-auto
         bg-white border border-gray-200 shadow-lg rounded-lg z-50 text-left
         md:top-auto md:right-0 md:mt-2 md:w-96 md:left-auto
-        transform transition-all duration-300 ease-out ${transitionClasses}
+        transform transition-all duration-300 ease-out
+        origin-top ${animationClasses}
       `}
     >
       {notifications.length === 0 ? (
