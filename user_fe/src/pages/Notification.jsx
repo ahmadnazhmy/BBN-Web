@@ -6,6 +6,23 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
   const [notifications, setNotifications] = useState([]);
   const dropdownRef = useRef(null);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        notificationButtonRef.current &&
+        !notificationButtonRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownRef, notificationButtonRef, setIsOpen]);
+
   const fetchNotifications = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -136,25 +153,29 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  const transitionClasses = isOpen
+    ? 'opacity-100 translate-y-0'
+    : 'opacity-0 -translate-y-2'; 
+  if (!isOpen && transitionClasses.includes('opacity-0')) return null;
 
   return (
     <div
       ref={dropdownRef}
-      className="
+      className={`
         fixed top-16 right-4
         w-[calc(100vw-32px)] max-w-md min-w-[240px]
         max-h-[70vh] overflow-y-auto
         bg-white border border-gray-200 shadow-lg rounded-lg z-50 text-left
         md:top-auto md:right-0 md:mt-2 md:w-96 md:left-auto
-      "
+        transform transition-all duration-300 ease-out ${transitionClasses}
+      `}
     >
       {notifications.length === 0 ? (
         <div className="p-4 text-gray-500 text-center">
           <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
             <span className="font-bold text-lg">Notifikasi</span>
             <button
-              onClick={() => setIsOpen(false)} 
+              onClick={() => setIsOpen(false)}
               className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
               aria-label="Tutup notifikasi"
             >
