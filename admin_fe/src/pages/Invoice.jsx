@@ -271,7 +271,10 @@ function Invoice() {
                 Jenis Pembayaran: <span className="font-semibold">{formatPaymentType(payment?.payment_type) || '-'}</span>
               </p>
               <p className="text-sm text-gray-600">
-                Tanggal Pembayaran: <span className="font-medium">{formatDate(payment?.created_at)}</span>
+                Tanggal Pembayaran:
+                <span className="font-medium">
+                  {payment?.created_at ? formatDate(payment.created_at) : '-'}
+                </span>
               </p>
             </div>
           </div>
@@ -297,7 +300,7 @@ function Invoice() {
               </p>
               <p className="text-gray-700">
                 <span className="font-semibold">Tanggal Order:</span>{' '}
-                {payment?.created_at ? formatDate(payment.created_at) : '-'}
+                {payment?.order_date ? formatDate(payment.order_date) : '-'}
               </p>
               <p className="text-gray-700">
                 <span className="font-semibold">Metode Pembayaran:</span>{' '}

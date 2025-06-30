@@ -67,77 +67,78 @@ async function getOrderPaymentDetailsWithItems(req, res) {
 }
 
 const uploadProof = async (req, res) => {
-  const user_id = req.user.id;
-  const order_id = req.body.order_id;
-  const amount = parseInt(req.body.amount) || 0;
-  const proofUrl = req.file?.path;
-  const paymentType = req.body.payment_type || '';
-  const paymentTypeLower = paymentType.toLowerCase();
+  const user_id = req.user.id;
+  const order_id = req.body.order_id;
+  const amount = parseInt(req.body.amount) || 0;
+  const proofUrl = req.file?.path;
+  const paymentType = req.body.payment_type || '';
+  const paymentTypeLower = paymentType.toLowerCase();
 
-  if (paymentTypeLower && !['downpayment', 'fullpayment', 'settlement'].includes(paymentTypeLower)) {
-    return res.status(400).json({ message: 'Invalid payment type' });
-  }
+  if (paymentTypeLower && !['downpayment', 'fullpayment', 'settlement'].includes(paymentTypeLower)) {
+    return res.status(400).json({ message: 'Invalid payment type' });
+  }
 
-  if (!proofUrl) {
-    return res.status(400).json({ error: 'Bukti pembayaran tidak ditemukan' });
-  }
+  if (!proofUrl) {
+    return res.status(400).json({ error: 'Bukti pembayaran tidak ditemukan' });
+  }
 
-  const payment_method = req.body.payment_method;
-  const validMethods = [
-    'bank_mandiri', 'bank_bca', 'bank_bni', 'bank_bri',
-    'bank_btn', 'bank_bsi', 'shopeepay', 'gopay', 'dana'
-  ];
-  if (!payment_method || !validMethods.includes(payment_method)) {
-    return res.status(400).json({ error: 'Metode pembayaran tidak valid' });
-  }
+  const payment_method = req.body.payment_method;
+  const validMethods = [
+    'bank_mandiri', 'bank_bca', 'bank_bni', 'bank_bri',
+    'bank_btn', 'bank_bsi', 'shopeepay', 'gopay', 'dana'
+  ];
+  if (!payment_method || !validMethods.includes(payment_method)) {
+    return res.status(400).json({ error: 'Metode pembayaran tidak valid' });
+  }
 
-  try {
-    const conn = await db.getConnection();
-    const [orders] = await conn.execute(`
-      SELECT order_id FROM \`order\` WHERE order_id = ? AND user_id = ?
-    `, [order_id, user_id]);
+  try {
+    const conn = await db.getConnection();
+    const [orders] = await conn.execute(`
+      SELECT order_id FROM \`order\` WHERE order_id = ? AND user_id = ?
+    `, [order_id, user_id]);
 
-    if (orders.length === 0) {
-      conn.release();
-      return res.status(404).json({ error: 'Order tidak ditemukan atau bukan milik Anda' });
-    }
+    if (orders.length === 0) {
+      conn.release();
+      return res.status(404).json({ error: 'Order tidak ditemukan atau bukan milik Anda' });
+    }
 
-    const allowedStatuses = ['pending_dp', 'pending_fullpayment', 'failed'];
-    const placeholders = allowedStatuses.map(() => '?').join(', ');
-    const sql = `
-      SELECT payment_id FROM payment
-      WHERE order_id = ? AND user_id = ? AND status IN (${placeholders})
-      LIMIT 1
-    `;
-    const params = [order_id, user_id, ...allowedStatuses];
-    const [existingPayments] = await conn.execute(sql, params);
+    const allowedStatuses = ['pending_dp', 'pending_fullpayment', 'failed'];
+    const placeholders = allowedStatuses.map(() => '?').join(', ');
+    const sql = `
+      SELECT payment_id FROM payment
+      WHERE order_id = ? AND user_id = ? AND status IN (${placeholders})
+      LIMIT 1
+    `;
+    const params = [order_id, user_id, ...allowedStatuses];
+    const [existingPayments] = await conn.execute(sql, params);
 
-    const initialStatus = 'pending_verification';
+    const initialStatus = 'pending_verification';
+    const currentJakartaTime = getJakartaDateTime();
 
-    if (existingPayments.length > 0) {
-      const paymentId = existingPayments[0].payment_id;
-      await conn.execute(`
-        UPDATE payment
-        SET proof_of_payment = ?, amount = ?, payment_method = ?, status = ?, message = NULL
-        WHERE payment_id = ?
-      `, [proofUrl, amount, payment_method, initialStatus, paymentId]);
-    } else {
-      await conn.execute(`
-        INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment, payment_method, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [order_id, user_id, amount, initialStatus, proofUrl, payment_method, getJakartaDateTime()]);
-    }
+    if (existingPayments.length > 0) {
+      const paymentId = existingPayments[0].payment_id;
+      await conn.execute(`
+        UPDATE payment
+        SET proof_of_payment = ?, amount = ?, payment_method = ?, status = ?, message = NULL, created_at = ? 
+        WHERE payment_id = ?
+      `, [proofUrl, amount, payment_method, initialStatus, currentJakartaTime, paymentId]); 
+    } else {
+      await conn.execute(`
+        INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment, payment_method, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [order_id, user_id, amount, initialStatus, proofUrl, payment_method, currentJakartaTime]);
+    }
 
-    await conn.execute(`
-      UPDATE \`order\` SET status = 'pending' WHERE order_id = ?
-    `, [order_id]);
+    await conn.execute(`
+      UPDATE \`order\` SET status = 'pending' WHERE order_id = ?
+    `, [order_id]);
 
-    conn.release();
-    res.status(201).json({ message: 'Bukti pembayaran berhasil diupload', proofUrl });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Gagal upload bukti pembayaran' });
-  }
+    conn.release();
+    res.status(201).json({ message: 'Bukti pembayaran berhasil diupload', proofUrl });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Gagal upload bukti pembayaran' });
+  }
 };
 
 const getAllPayments = async (req, res) => {
@@ -362,8 +363,15 @@ const getPaymentByPaymentId = async (req, res) => {
 
   try {
     const [paymentRows] = await db.execute(`
-      SELECT p.*, p.proof_of_payment, u.shop_name, u.email, u.phone,
-             o.location, o.delivery_method
+      SELECT
+          p.*,
+          p.proof_of_payment,
+          u.shop_name,
+          u.email,
+          u.phone,
+          o.location,
+          o.delivery_method,
+          o.order_date
       FROM payment p
       JOIN user u ON p.user_id = u.user_id
       JOIN \`order\` o ON p.order_id = o.order_id
@@ -377,15 +385,14 @@ const getPaymentByPaymentId = async (req, res) => {
 
     const payment = paymentRows[0];
     const orderId = payment.order_id;
-
     const [items] = await db.execute(`
       SELECT
-        oi.*,
-        pr.unit_price,
-        pr.product_name,
-        pr.type,
-        pr.thick,
-        pr.avg_weight_per_stick
+          oi.*,
+          pr.unit_price,
+          pr.product_name,
+          pr.type,
+          pr.thick,
+          pr.avg_weight_per_stick
       FROM order_item oi
       JOIN product pr ON oi.product_id = pr.product_id
       WHERE oi.order_id = ?

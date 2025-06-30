@@ -68,10 +68,11 @@ const checkout = async (req, res) => {
         const initialPaymentStatus = paymentTypeLower === 'downpayment' ? 'pending_dp' : 'pending_fullpayment';
 
         const [paymentResult] = await conn.execute(
-            `INSERT INTO payment (order_id, user_id, amount, payment_type, status, message, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+            `INSERT INTO payment (order_id, user_id, amount, payment_type, status, message)
+            VALUES (?, ?, ?, ?, ?, ?)`, 
             [order_id, user_id, amount, paymentTypeLower, initialPaymentStatus, message || '']
         );
+
         const payment_id = paymentResult.insertId;
 
         await conn.commit();
