@@ -74,7 +74,6 @@ const uploadProof = async (req, res) => {
   }
 
   const payment_method = req.body.payment_method;
-
   const validMethods = [
     'bank_mandiri', 'bank_bca', 'bank_bni', 'bank_bri',
     'bank_btn', 'bank_bsi', 'shopeepay', 'gopay', 'dana'
@@ -101,7 +100,6 @@ const uploadProof = async (req, res) => {
       WHERE order_id = ? AND user_id = ? AND status IN (${placeholders})
       LIMIT 1
     `;
-
     const params = [order_id, user_id, ...allowedStatuses];
     const [existingPayments] = await conn.execute(sql, params);
 
