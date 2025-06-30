@@ -116,7 +116,7 @@ function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Pengguna" value={stats.totalUsers} icon={statIcons.totalUsers} bgColor="bg-blue-50" iconBg="bg-blue-100" iconColor="text-blue-600" />
+        <StatCard title="Total Pelanggan" value={stats.totalUsers} icon={statIcons.totalUsers} bgColor="bg-blue-50" iconBg="bg-blue-100" iconColor="text-blue-600" />
         <StatCard title="Total Produk" value={stats.totalProducts} icon={statIcons.totalProducts} bgColor="bg-green-50" iconBg="bg-green-100" iconColor="text-green-600" />
         <StatCard title="Total Pesanan" value={stats.totalOrders} icon={statIcons.totalOrders} bgColor="bg-purple-50" iconBg="bg-purple-100" iconColor="text-purple-600" />
         <StatCard title="Total Pendapatan" value={`Rp ${(stats.payments?.successAmount || 0).toLocaleString('id-ID')}`} icon={statIcons.totalRevenue} bgColor="bg-yellow-50" iconBg="bg-yellow-100" iconColor="text-yellow-600" />

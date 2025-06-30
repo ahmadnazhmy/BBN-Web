@@ -650,11 +650,11 @@ function Payment() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {format(new Date(p.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
+                        {format(new Date(p.created_at), 'dd MMM yyyy HH:mm:ss', { locale: id })}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
                         {p.verified_at
-                          ? format(new Date(p.verified_at), 'dd MMM yyyy HH:mm', { locale: id })
+                          ? format(new Date(p.verified_at), 'dd MMM yyyy HH:mm:ss', { locale: id })
                           : <i className='text-gray-400'>Belum diverifikasi</i>}
                       </td>
                       <td className="px-4 py-3 text-gray-600">

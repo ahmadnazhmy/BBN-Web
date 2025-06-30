@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faXmark, faChevronDown, faFile } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { getMonth, getYear } from 'date-fns';
+import { getMonth, getYear, format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -447,17 +447,10 @@ export default function Order() {
                                             <td className="px-4 py-3">{idx + 1}</td>
                                             <td className="px-4 py-3 font-semibold text-gray-900">{order.order_id}</td>
                                             <td className="px-4 py-3">{order.shop_name}</td>
-                                            <td className="px-4 py-3">
-                                                {new Date(order.order_date).toLocaleString('id-ID', {
-                                                    day: 'numeric',
-                                                    month: 'short',
-                                                    year: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                    second: '2-digit',
-                                                    hour12: false,
-                                                    hourCycle: 'h23',
-                                                })}
+                                            <td className="px-4 py-3 text-gray-600">
+                                            {order.order_date
+                                                ? format(new Date(order.order_date), 'dd MMM yyyy HH:mm:ss', { locale: id })
+                                                : '-'}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="relative">
