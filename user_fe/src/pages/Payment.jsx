@@ -451,7 +451,6 @@ function Payment() {
                       <option value="shopeepay">ShopeePay</option>
                       <option value="gopay">GoPay</option>
                       <option value="dana">DANA</option>
-                      <option value="ovo">OVO</option>
                     </optgroup>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-600">
