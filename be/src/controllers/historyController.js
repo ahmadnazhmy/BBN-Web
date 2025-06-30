@@ -24,7 +24,7 @@ const getUserHistory = async (req, res) => {
         `, [user_id]); 
 
         const ordersWithDetails = await Promise.all(orders.map(async (order) => {
-            // Ambil item
+
             const [items] = await conn.execute(`
                 SELECT
                     oi.order_item_id,
@@ -40,7 +40,6 @@ const getUserHistory = async (req, res) => {
                 WHERE oi.order_id = ?
             `, [order.order_id]);
 
-            // Ambil semua payment termasuk due_date
             const [payments] = await conn.execute(`
                 SELECT
                     payment_id,

@@ -1,10 +1,21 @@
 const db = require('../config/db');
 
 function getJakartaDateTime() {
-    const now = new Date();
-    const offset = 7 * 60 * 60 * 1000;
-    const jakartaTime = new Date(now.getTime() + offset);
-    return jakartaTime.toISOString().slice(0, 19).replace('T', ' ');
+  const now = new Date();
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Jakarta'
+  };
+
+  const jakartaTimeString = new Intl.DateTimeFormat('en-CA', options).format(now);
+
+  return jakartaTimeString.replace(/(\d{4})-(\d{2})-(\d{2}),? (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3 $4:$5:$6');
 }
 
 const checkout = async (req, res) => {
