@@ -456,6 +456,7 @@ export default function Order() {
                                                     minute: '2-digit',
                                                     second: '2-digit',
                                                     hour12: false,
+                                                    hourCycle: 'h23',
                                                 })}
                                             </td>
                                             <td className="px-4 py-3">

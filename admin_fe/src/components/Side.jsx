@@ -23,7 +23,8 @@ function Side({ isOpen, toggleSidebar }) {
 
   return (
     <div
-      className={`fixed top-0 left-0 h-screen bg-blue-900 text-white flex flex-col p-6 shadow-lg z-20 transition-all duration-300 ease-in-out
+      className={`fixed top-0 left-0 h-screen text-white flex flex-col p-6 shadow-lg z-20 transition-all duration-300 ease-in-out
+    bg-gradient-to-b from-blue-950 via-blue-900 to-blue-800
         ${isOpen ? 'w-80' : 'w-24'} `}
     >
       <div className="flex items-center justify-center mb-8">
