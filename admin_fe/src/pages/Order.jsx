@@ -448,10 +448,14 @@ export default function Order() {
                                             <td className="px-4 py-3 font-semibold text-gray-900">{order.order_id}</td>
                                             <td className="px-4 py-3">{order.shop_name}</td>
                                             <td className="px-4 py-3">
-                                                {new Date(order.order_date).toLocaleDateString('id-ID', {
+                                                {new Date(order.order_date).toLocaleString('id-ID', {
                                                     day: 'numeric',
                                                     month: 'short',
                                                     year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    second: '2-digit',
+                                                    hour12: false,
                                                 })}
                                             </td>
                                             <td className="px-4 py-3">
