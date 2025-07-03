@@ -505,7 +505,7 @@ function Payment() {
                 >
                   Bayar Nanti
                 </button>
-                {payment_type !== 'settlement' && (
+                {paymentType !== 'settlement' && (
                   <button
                     type="button"
                     onClick={handleCancelPayment}
