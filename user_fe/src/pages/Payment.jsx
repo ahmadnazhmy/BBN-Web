@@ -505,14 +505,16 @@ function Payment() {
                 >
                   Bayar Nanti
                 </button>
-                <button
-                  type="button"
-                  onClick={handleCancelPayment}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg transition-colors duration-200 font-semibold text-lg"
-                  disabled={loadingUpload}
-                >
-                  {loadingUpload ? 'Membatalkan...' : 'Batalkan Pesanan Ini'}
-                </button>
+                {payment_type !== 'settlement' && (
+                  <button
+                    type="button"
+                    onClick={handleCancelPayment}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg transition-colors duration-200 font-semibold text-lg"
+                    disabled={loadingUpload}
+                  >
+                    {loadingUpload ? 'Membatalkan...' : 'Batalkan Pesanan Ini'}
+                  </button>
+                )}
               </div>
             </form>
           )}
