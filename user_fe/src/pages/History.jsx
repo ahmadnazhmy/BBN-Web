@@ -230,13 +230,12 @@ function History() {
                                         </span>
                                     </div>
                                     <div className="text-right">
-                                        <div className="flex items-center text-lg">
-                                            <FontAwesomeIcon icon={orderStatusInfo.icon} className={`${orderStatusInfo.color} mr-2`} />
-                                            <span className={`font-semibold ${orderStatusInfo.color}`}>
-                                                {orderStatusInfo.text}
-                                            </span>
-                                        </div>
-
+                                        <div className="flex items-center justify-end text-lg">
+                                            <FontAwesomeIcon icon={orderStatusInfo.icon} className={`${orderStatusInfo.color} mr-2`} />
+                                            <span className={`font-semibold ${orderStatusInfo.color}`}>
+                                                {orderStatusInfo.text}
+                                            </span>
+                                        </div>
                                         {showDeliveryInfo && estimatedDeliveryDateFormatted && (
                                             <div className="text-md text-gray-700 flex items-center justify-end">
                                                 <FontAwesomeIcon icon={faClock} className="mr-2 text-blue-500" />
