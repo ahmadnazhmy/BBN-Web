@@ -37,43 +37,50 @@ async function cancelOverdueOrders() {
 
     if (overdueOrders.length === 0) {
       await conn.commit();
-      conn.release();
       return;
     }
 
     for (const order of overdueOrders) {
-      const orderId = order.order_id;
-      const userId = order.user_id;
+      const { order_id, user_id } = order;
 
       await conn.execute(
         `UPDATE \`order\` SET status = 'expired' WHERE order_id = ?`,
-        [orderId]
+        [order_id]
       );
 
       await conn.execute(
-        `UPDATE payment SET status = 'failed', message = 'Dibatalkan karena melewati batas waktu pembayaran awal.'
-          WHERE order_id = ? AND payment_type IN ('downpayment', 'fullpayment') AND status IN ('pending_dp', 'pending_fullpayment')`,
-        [orderId]
+        `UPDATE payment
+         SET status = 'failed',
+             message = 'Dibatalkan karena melewati batas waktu pembayaran awal.'
+         WHERE order_id = ?
+           AND payment_type IN ('downpayment', 'fullpayment')
+           AND status IN ('pending_dp', 'pending_fullpayment')`,
+        [order_id]
       );
 
-      const notifMessage = `Pesanan #${orderId} telah dibatalkan secara otomatis karena melewati batas waktu pembayaran awal.`;
+      const notifMessage = `Pesanan #${order_id} telah dibatalkan secara otomatis karena melewati batas waktu pembayaran awal.`;
+
       await conn.execute(
         `INSERT INTO notification (user_id, order_id, message, is_read, created_at)
-          VALUES (?, ?, ?, FALSE, ?)`,
-        [userId, orderId, notifMessage, getJakartaDateTime()]
+         VALUES (?, ?, ?, FALSE, ?)`,
+        [user_id, order_id, notifMessage, getJakartaDateTime()]
       );
     }
 
     await conn.commit();
   } catch (error) {
     if (conn) {
-      await conn.rollback();
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error('Rollback gagal:', rollbackError.message);
+      }
     }
+    console.error('Gagal membatalkan pesanan kadaluarsa:', error.message);
   } finally {
-    if (conn) {
-      conn.release();
-    }
+    if (conn) conn.release();
   }
 }
+
 
 module.exports = cancelOverdueOrders;
