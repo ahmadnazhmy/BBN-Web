@@ -4,32 +4,10 @@ const path = require('path');
 const cron = require('node-cron'); 
 const cancelOverdueOrders = require('./tasks/cancelOverdueOrders');
 
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.develpment';
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 require('dotenv').config({ path: path.resolve(__dirname, envFile) });
 
 const app = express();
-
-if (process.env.UPLOAD_TARGET === 'local') {
-  app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
-}
-
-const productRouter = require('./routes/productRoutes');
-const authRouter = require('./routes/authRoutes');
-const profileRoutes = require('./routes/profileRoutes');
-const cartRoutes = require('./routes/cartRoutes');
-const orderRoutes = require('./routes/orderRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
-const historyRoutes = require('./routes/historyRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
-const rewardRoutes = require('./routes/rewardRoutes');
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use((req, res, next) => {
-  next();
-});
 
 const allowedOrigins = [
   'https://bbn-web-ahmad-nazhmy-zahrians-projects.vercel.app',
@@ -38,7 +16,7 @@ const allowedOrigins = [
   'http://localhost:5175',
 ];
 
-const corsOptions = {
+app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -48,20 +26,25 @@ const corsOptions = {
     }
   },
   credentials: true,
-};
+}));
 
-app.use(cors(corsOptions));
+if (process.env.UPLOAD_TARGET === 'local') {
+  app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+}
 
-app.use('/api', productRouter);
-app.use('/api', authRouter);
-app.use('/api', profileRoutes);
-app.use('/api', cartRoutes);
-app.use('/api', orderRoutes);
-app.use('/api', paymentRoutes);
-app.use('/api', historyRoutes);
-app.use('/api', notificationRoutes);
-app.use('/api', dashboardRoutes);
-app.use('/api', rewardRoutes)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use('/api', require('./routes/productRoutes'));
+app.use('/api', require('./routes/authRoutes'));
+app.use('/api', require('./routes/profileRoutes'));
+app.use('/api', require('./routes/cartRoutes'));
+app.use('/api', require('./routes/orderRoutes'));
+app.use('/api', require('./routes/paymentRoutes'));
+app.use('/api', require('./routes/historyRoutes'));
+app.use('/api', require('./routes/notificationRoutes'));
+app.use('/api', require('./routes/dashboardRoutes'));
+app.use('/api', require('./routes/rewardRoutes'));
 
 app.get('/', (req, res) => {
   res.send('API berjalan');
@@ -71,10 +54,7 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint tidak ditemukan' });
 });
 
-cron.schedule('*/1 * * * *', () => {
-    cancelOverdueOrders();
-});
-
+cron.schedule('*/1 * * * *', cancelOverdueOrders);
 cancelOverdueOrders();
 
 module.exports = app;
