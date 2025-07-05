@@ -162,6 +162,8 @@ const Cart = () => {
                 body: JSON.stringify(payload),
             });
 
+            const result = await response.json();
+
             if (response.ok && result.reward) {
                 setAppliedDiscount(result.reward);
                 alert(`Diskon ${result.reward.discount_percentage}% berhasil diterapkan!`);
