@@ -4,7 +4,7 @@ const path = require('path');
 const cron = require('node-cron'); 
 const cancelOverdueOrders = require('./tasks/cancelOverdueOrders');
 
-const envFile = process.env.NODE_ENV === 'production' ? '.env.prod' : '.env.dev';
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.develpment';
 require('dotenv').config({ path: path.resolve(__dirname, envFile) });
 
 const app = express();
