@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { faChevronDown, faFileInvoiceDollar, faFile, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faFileInvoiceDollar, faFile, faXmark, faSearch } from '@fortawesome/free-solid-svg-icons'; 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { getYear, getMonth, format } from 'date-fns';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { id } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LogoImage from '../assets/images/logo2.png';
+import API_BASE_URL from '../api';
 
 function Payment() {
   const [payments, setPayments] = useState([]);
@@ -18,7 +19,7 @@ function Payment() {
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [filterMonthYear, setFilterMonthYear] = useState(null);
   const [totalAmount, setTotalAmount] = useState(0);
-  
+
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [animateInvoiceModal, setAnimateInvoiceModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
@@ -31,6 +32,8 @@ function Payment() {
     dueDate: '',
     totalAmount: 0,
   });
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   const PaymentType = {
     DOWNPAYMENT: 'downpayment',
@@ -64,8 +67,6 @@ function Payment() {
   const notificationTimeout = useRef(null);
   const location = useLocation();
   const initialPaymentId = location.state?.paymentId;
-  const backendURL = process.env.REACT_APP_BACKEND_URL || 'https://bbn-web-production.up.railway.app';
-  const cloudinaryCloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || 'dohxnnnby'; 
 
   const showNotification = useCallback((msg, type = 'success', duration = 3000) => {
     setNotification({ message: msg, type });
@@ -105,26 +106,26 @@ function Payment() {
   }, [showInvoiceModal, selectedPayment, orderDetail, PaymentType.DOWNPAYMENT]);
 
   useEffect(() => {
-  const fetchOrderDetails = async (paymentId) => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch(`${backendURL}/api/admin/order/${paymentId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!res.ok) throw new Error('Gagal mengambil detail order');
-      const data = await res.json();
-      setOrderDetail(data);
-    } catch (err) {
-      console.error('Error fetching order details:', err);
-    }
-  };
+    const fetchOrderDetails = async (paymentId) => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        const res = await fetch(`${API_BASE_URL}/admin/order/${paymentId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) throw new Error('Gagal mengambil detail order');
+        const data = await res.json();
+        setOrderDetail(data);
+      } catch (err) {
+        console.error('Error fetching order details:', err);
+      }
+    };
 
-  if (showInvoiceModal && selectedPayment && selectedPayment.payment_id) {
-    fetchOrderDetails(selectedPayment.payment_id);
-  }
-}, [showInvoiceModal, selectedPayment, backendURL]);
+    if (showInvoiceModal && selectedPayment && selectedPayment.payment_id) {
+      fetchOrderDetails(selectedPayment.payment_id);
+    }
+  }, [showInvoiceModal, selectedPayment, API_BASE_URL]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -144,7 +145,7 @@ function Payment() {
         due_date: formData.dueDate,
       };
 
-      const res = await fetch(`${backendURL}/api/admin/payment/invoice-settlement`, {
+      const res = await fetch(`${API_BASE_URL}/admin/payment/invoice-settlement`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +160,6 @@ function Payment() {
       }
 
       const newPayment = await res.json();
-      console.log('New full payment invoice created:', newPayment);
 
       showNotification('Invoice pelunasan berhasil dibuat!', 'success');
       onCloseInvoiceModal();
@@ -181,11 +181,12 @@ function Payment() {
 
   useEffect(() => {
     let result = payments;
+
     if (filterMonthYear) {
       const selectedMonth = filterMonthYear.getMonth();
       const selectedYear = filterMonthYear.getFullYear();
 
-      result = payments.filter((p) => {
+      result = result.filter((p) => {
         const paymentDate = new Date(p.created_at);
         return (
           paymentDate.getMonth() === selectedMonth &&
@@ -193,20 +194,27 @@ function Payment() {
         );
       });
     }
+
+    if (searchQuery) {
+      result = result.filter((p) =>
+        p.shop_name && p.shop_name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
     setFilteredPayments(result);
 
     const total = result
       .filter((p) => p.status === 'completed' || p.status === 'dp_paid')
       .reduce((sum, payment) => sum + (payment.total_price || 0), 0);
     setTotalAmount(total);
-  }, [payments, filterMonthYear]);
+  }, [payments, filterMonthYear, searchQuery]); 
 
   useEffect(() => {
     fetchPayments();
     return () => {
       if (notificationTimeout.current) clearTimeout(notificationTimeout.current);
     };
-  }, [filterMonthYear]);
+  }, [filterMonthYear]); 
 
   const fetchPayments = async () => {
     try {
@@ -220,7 +228,7 @@ function Payment() {
         query.append('year', filterMonthYear.getFullYear());
       }
 
-      const url = `${backendURL}/api/admin/payment${query.toString() ? '?' + query.toString() : ''}`;
+      const url = `${API_BASE_URL}/admin/payment${query.toString() ? '?' + query.toString() : ''}`;
 
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -245,7 +253,7 @@ function Payment() {
   const updateStatus = async (paymentId, newStatus) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`${backendURL}/api/admin/payment/${paymentId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/admin/payment/${paymentId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -269,7 +277,7 @@ function Payment() {
   const updateMessage = async (paymentId, newMessage) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`${backendURL}/api/admin/payment/${paymentId}/message`, {
+      const res = await fetch(`${API_BASE_URL}/admin/payment/${paymentId}/message`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -286,220 +294,220 @@ function Payment() {
   };
 
   const openInvoiceModal = (payment) => {
-      setSelectedPayment(payment);
-      setSelectedOrderId(payment.order_id);
-      setShowInvoiceModal(true);
-      setTimeout(() => {
-          setAnimateInvoiceModal(true);
-      }, 50);
+    setSelectedPayment(payment);
+    setSelectedOrderId(payment.order_id);
+    setShowInvoiceModal(true);
+    setTimeout(() => {
+      setAnimateInvoiceModal(true);
+    }, 50);
   };
 
   const onCloseInvoiceModal = () => {
-      setAnimateInvoiceModal(false);
-      setTimeout(() => {
-          setShowInvoiceModal(false);
-          setSelectedPayment(null);
-          setOrderDetail(null);
-          setSelectedOrderId(null);
-          setFormData({
-              customerName: '',
-              dueDate: '',
-              totalAmount: 0,
-          });
-      }, 300);
+    setAnimateInvoiceModal(false);
+    setTimeout(() => {
+      setShowInvoiceModal(false);
+      setSelectedPayment(null);
+      setOrderDetail(null);
+      setSelectedOrderId(null);
+      setFormData({
+        customerName: '',
+        dueDate: '',
+        totalAmount: 0,
+      });
+    }, 300);
   };
 
   const handleExportPDF = () => {
-      const getMonthName = (monthNumber) => {
-          const date = new Date(2000, monthNumber - 1, 1);
-          return date.toLocaleString("id-ID", { month: "long" });
-      };
+    const getMonthName = (monthNumber) => {
+      const date = new Date(2000, monthNumber - 1, 1);
+      return date.toLocaleString("id-ID", { month: "long" });
+    };
 
-      if (!filteredPayments || filteredPayments.length === 0) {
-          showNotification("Tidak ada pembayaran untuk diekspor.", 'error');
-          return;
-      }
+    if (!filteredPayments || filteredPayments.length === 0) {
+      showNotification("Tidak ada pembayaran untuk diekspor.", 'error');
+      return;
+    }
 
-      const doc = new jsPDF('landscape');
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
+    const doc = new jsPDF('landscape');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-      const selectedMonthNumber = filterMonthYear ? getMonth(filterMonthYear) + 1 : new Date().getMonth() + 1;
-      const selectedYear = filterMonthYear ? getYear(filterMonthYear) : new Date().getFullYear();
-      const bulan = getMonthName(selectedMonthNumber);
+    const selectedMonthNumber = filterMonthYear ? getMonth(filterMonthYear) + 1 : new Date().getMonth() + 1;
+    const selectedYear = filterMonthYear ? getYear(filterMonthYear) : new Date().getFullYear();
+    const bulan = getMonthName(selectedMonthNumber);
 
-      const now = new Date();
-      const tanggalCetak = now.toLocaleDateString("id-ID", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
+    const now = new Date();
+    const tanggalCetak = now.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    const jamCetak = now.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const img = new Image();
+    img.src = LogoImage;
+
+    img.onload = () => {
+      doc.addImage(img, "PNG", 14, 10, 20, 20);
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Berlian Baja Nusantara", 38, 15);
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+
+      const addressText = "Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820";
+      const splitAddress = doc.splitTextToSize(addressText, pageWidth / 3 - 10);
+      doc.text(splitAddress, 38, 20);
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Laporan Pembayaran", pageWidth - 14, 15, {
+        align: "right",
       });
-      const jamCetak = now.toLocaleTimeString("id-ID", {
-          hour: "2-digit",
-          minute: "2-digit",
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Bulan: ${bulan} ${selectedYear}`, pageWidth - 14, 20, { align: "right" });
+      doc.text(`Tanggal Cetak: ${tanggalCetak} pukul ${jamCetak}`, pageWidth - 14, 25, { align: "right" });
+
+      doc.setFontSize(10);
+      doc.text(`Total Pembayaran (Status Selesai/DP Dibayar): Rp ${totalAmount.toLocaleString('id-ID')}`, pageWidth - 14, 30, { align: "right" });
+
+      const addressLinesHeight = splitAddress.length * doc.internal.getLineHeight();
+      const addressBottomY = 20 + addressLinesHeight;
+      const reportInfoBottomY = 30;
+      const finalYForHeader = Math.max(addressBottomY, reportInfoBottomY);
+
+      doc.setLineWidth(0.5);
+      doc.line(14, finalYForHeader + 1, pageWidth - 14, finalYForHeader + 1);
+
+      const tableHeaders = ['No', 'ID Pesanan', 'Nama Toko', 'Jumlah', 'Tipe Pembayaran', 'Metode Pembayaran', 'Status', 'Tanggal Dibuat', 'Tanggal Verifikasi', 'Jatuh Tempo'];
+
+      const tableData = filteredPayments.map((p, index) => [
+        index + 1,
+        p.order_id,
+        p.shop_name,
+        `Rp ${p.amount.toLocaleString('id-ID')}`,
+        formatPaymentType(p.payment_type),
+        formatPaymentMethod(p.payment_method),
+        statusLabels[p.status] || p.status,
+        format(new Date(p.created_at), "dd/MM/yyyy HH:mm", { locale: id }),
+        p.verified_at ? format(new Date(p.verified_at), "dd/MM/yyyy HH:mm", { locale: id }) : '-',
+        p.due_date ? format(new Date(p.due_date), 'dd/MM/yyyy', { locale: id }) : '-',
+      ]);
+
+      const tableLeftMargin = 14;
+      const tableRightMargin = 14;
+      const availableTableWidth = pageWidth - tableLeftMargin - tableRightMargin;
+
+      const columnWidths = {
+        0: availableTableWidth * 0.03,
+        1: availableTableWidth * 0.09,
+        2: availableTableWidth * 0.15,
+        3: availableTableWidth * 0.10,
+        4: availableTableWidth * 0.10,
+        5: availableTableWidth * 0.10,
+        6: availableTableWidth * 0.08,
+        7: availableTableWidth * 0.12,
+        8: availableTableWidth * 0.12,
+        9: availableTableWidth * 0.11,
+      };
+
+      autoTable(doc, {
+        startY: finalYForHeader + 3,
+        head: [tableHeaders],
+        body: tableData,
+        styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+        headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
+        columnStyles: columnWidths,
+        margin: { left: tableLeftMargin, right: tableRightMargin },
+        didDrawPage: function (data) {
+          doc.setFontSize(8);
+          doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        }
       });
 
-      const img = new Image();
-      img.src = LogoImage;
+      doc.save("Laporan_Pembayaran.pdf");
+      showNotification('Laporan PDF berhasil diunduh.', 'success');
+    };
 
-      img.onload = () => {
-          doc.addImage(img, "PNG", 14, 10, 20, 20);
+    img.onerror = () => {
+      showNotification("Gagal memuat logo untuk ekspor PDF. Mencoba membuat laporan tanpa logo.", 'error');
 
-          doc.setFontSize(12);
-          doc.setFont("helvetica", "bold");
-          doc.text("Berlian Baja Nusantara", 38, 15);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Berlian Baja Nusantara", 14, 15);
+      doc.setFontSize(9);
+      doc.text("Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820", 14, 20);
 
-          doc.setFontSize(9);
-          doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Laporan Pembayaran", pageWidth - 14, 15, { align: "right" });
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Bulan: ${bulan} ${selectedYear}`, pageWidth - 14, 20, { align: "right" });
+      doc.text(`Tanggal Cetak: ${tanggalCetak} pukul ${jamCetak}`, pageWidth - 14, 25, { align: "right" });
 
-          const addressText = "Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820";
-          const splitAddress = doc.splitTextToSize(addressText, pageWidth / 3 - 10);
-          doc.text(splitAddress, 38, 20);
+      doc.setFontSize(10);
+      doc.text(`Total Pembayaran (Status Selesai/DP Dibayar): Rp ${totalAmount.toLocaleString('id-ID')}`, pageWidth - 14, 30, { align: "right" });
 
-          doc.setFontSize(12);
-          doc.setFont("helvetica", "bold");
-          doc.text("Laporan Pembayaran", pageWidth - 14, 15, {
-              align: "right",
-          });
+      const headerOffset = 40;
+      doc.setLineWidth(0.5);
+      doc.line(14, headerOffset - 1, pageWidth - 14, headerOffset - 1);
 
-          doc.setFontSize(9);
-          doc.setFont("helvetica", "normal");
-          doc.text(`Bulan: ${bulan} ${selectedYear}`, pageWidth - 14, 20, { align: "right" });
-          doc.text(`Tanggal Cetak: ${tanggalCetak} pukul ${jamCetak}`, pageWidth - 14, 25, { align: "right" });
+      const tableHeaders = ['No', 'ID Pesanan', 'Nama Toko', 'Jumlah', 'Tipe Pembayaran', 'Metode Pembayaran', 'Status', 'Tanggal Dibuat', 'Tanggal Verifikasi', 'Jatuh Tempo'];
 
-          doc.setFontSize(10);
-          doc.text(`Total Pembayaran (Status Selesai/DP Dibayar): Rp ${totalAmount.toLocaleString('id-ID')}`, pageWidth - 14, 30, { align: "right" });
+      const tableData = filteredPayments.map((p, index) => [
+        index + 1,
+        p.order_id,
+        p.shop_name,
+        `Rp ${p.amount.toLocaleString('id-ID')}`,
+        formatPaymentType(p.payment_type),
+        formatPaymentMethod(p.payment_method),
+        statusLabels[p.status] || p.status,
+        format(new Date(p.created_at), "dd/MM/yyyy HH:mm", { locale: id }),
+        p.verified_at ? format(new Date(p.verified_at), "dd/MM/yyyy HH:mm", { locale: id }) : '-',
+        p.due_date ? format(new Date(p.due_date), 'dd/MM/yyyy', { locale: id }) : '-',
+      ]);
 
-          const addressLinesHeight = splitAddress.length * doc.internal.getLineHeight();
-          const addressBottomY = 20 + addressLinesHeight;
-          const reportInfoBottomY = 30;
-          const finalYForHeader = Math.max(addressBottomY, reportInfoBottomY);
+      const tableLeftMargin = 14;
+      const tableRightMargin = 14;
+      const availableTableWidth = pageWidth - tableLeftMargin - tableRightMargin;
 
-          doc.setLineWidth(0.5);
-          doc.line(14, finalYForHeader + 1, pageWidth - 14, finalYForHeader + 1);
-
-          const tableHeaders = ['No', 'ID Pesanan', 'Nama Toko', 'Jumlah', 'Tipe Pembayaran', 'Metode Pembayaran', 'Status', 'Tanggal Dibuat', 'Tanggal Verifikasi', 'Jatuh Tempo'];
-
-          const tableData = filteredPayments.map((p, index) => [
-              index + 1,
-              p.order_id,
-              p.shop_name,
-              `Rp ${p.amount.toLocaleString('id-ID')}`,
-              formatPaymentType(p.payment_type),
-              formatPaymentMethod(p.payment_method),
-              statusLabels[p.status] || p.status,
-              format(new Date(p.created_at), "dd/MM/yyyy HH:mm", { locale: id }),
-              p.verified_at ? format(new Date(p.verified_at), "dd/MM/yyyy HH:mm", { locale: id }) : '-',
-              p.due_date ? format(new Date(p.due_date), 'dd/MM/yyyy', { locale: id }) : '-',
-          ]);
-
-          const tableLeftMargin = 14;
-          const tableRightMargin = 14;
-          const availableTableWidth = pageWidth - tableLeftMargin - tableRightMargin;
-
-          const columnWidths = {
-              0: availableTableWidth * 0.03,
-              1: availableTableWidth * 0.09,
-              2: availableTableWidth * 0.15,
-              3: availableTableWidth * 0.10,
-              4: availableTableWidth * 0.10,
-              5: availableTableWidth * 0.10,
-              6: availableTableWidth * 0.08,
-              7: availableTableWidth * 0.12,
-              8: availableTableWidth * 0.12,
-              9: availableTableWidth * 0.11,
-          };
-
-          autoTable(doc, {
-              startY: finalYForHeader + 3,
-              head: [tableHeaders],
-              body: tableData,
-              styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
-              headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
-              columnStyles: columnWidths,
-              margin: { left: tableLeftMargin, right: tableRightMargin },
-              didDrawPage: function(data) {
-                  doc.setFontSize(8);
-                  doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-              }
-          });
-
-          doc.save("Laporan_Pembayaran.pdf");
-          showNotification('Laporan PDF berhasil diunduh.', 'success');
+      const columnWidths = {
+        0: availableTableWidth * 0.03,
+        1: availableTableWidth * 0.09,
+        2: availableTableWidth * 0.15,
+        3: availableTableWidth * 0.10,
+        4: availableTableWidth * 0.10,
+        5: availableTableWidth * 0.10,
+        6: availableTableWidth * 0.08,
+        7: availableTableWidth * 0.12,
+        8: availableTableWidth * 0.12,
+        9: availableTableWidth * 0.11,
       };
 
-      img.onerror = () => {
-          showNotification("Gagal memuat logo untuk ekspor PDF. Mencoba membuat laporan tanpa logo.", 'error');
+      autoTable(doc, {
+        startY: headerOffset + 3,
+        head: [tableHeaders],
+        body: tableData,
+        styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+        headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
+        columnStyles: columnWidths,
+        margin: { left: tableLeftMargin, right: tableRightMargin },
+        didDrawPage: function (data) {
+          doc.setFontSize(8);
+          doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        }
+      });
 
-          doc.setFontSize(12);
-          doc.setFont("helvetica", "bold");
-          doc.text("Berlian Baja Nusantara", 14, 15);
-          doc.setFontSize(9);
-          doc.text("Kws Industri Pergudangan Blessindo 2, Jl. Raya H. Tabri No.228 Blok P11, Kp.Nagrek, Bojongkamal, Kec. Legok, Kabupaten Tangerang, Banten 15820", 14, 20);
-
-          doc.setFontSize(12);
-          doc.setFont("helvetica", "bold");
-          doc.text("Laporan Pembayaran", pageWidth - 14, 15, { align: "right" });
-          doc.setFontSize(9);
-          doc.setFont("helvetica", "normal");
-          doc.text(`Bulan: ${bulan} ${selectedYear}`, pageWidth - 14, 20, { align: "right" });
-          doc.text(`Tanggal Cetak: ${tanggalCetak} pukul ${jamCetak}`, pageWidth - 14, 25, { align: "right" });
-
-          doc.setFontSize(10);
-          doc.text(`Total Pembayaran (Status Selesai/DP Dibayar): Rp ${totalAmount.toLocaleString('id-ID')}`, pageWidth - 14, 30, { align: "right" });
-
-          const headerOffset = 40;
-          doc.setLineWidth(0.5);
-          doc.line(14, headerOffset - 1, pageWidth - 14, headerOffset - 1);
-
-          const tableHeaders = ['No', 'ID Pesanan', 'Nama Toko', 'Jumlah', 'Tipe Pembayaran', 'Metode Pembayaran', 'Status', 'Tanggal Dibuat', 'Tanggal Verifikasi', 'Jatuh Tempo'];
-
-          const tableData = filteredPayments.map((p, index) => [
-              index + 1,
-              p.order_id,
-              p.shop_name,
-              `Rp ${p.amount.toLocaleString('id-ID')}`,
-              formatPaymentType(p.payment_type),
-              formatPaymentMethod(p.payment_method),
-              statusLabels[p.status] || p.status,
-              format(new Date(p.created_at), "dd/MM/yyyy HH:mm", { locale: id }),
-              p.verified_at ? format(new Date(p.verified_at), "dd/MM/yyyy HH:mm", { locale: id }) : '-',
-              p.due_date ? format(new Date(p.due_date), 'dd/MM/yyyy', { locale: id }) : '-',
-          ]);
-
-          const tableLeftMargin = 14;
-          const tableRightMargin = 14;
-          const availableTableWidth = pageWidth - tableLeftMargin - tableRightMargin;
-
-          const columnWidths = {
-              0: availableTableWidth * 0.03,
-              1: availableTableWidth * 0.09,
-              2: availableTableWidth * 0.15,
-              3: availableTableWidth * 0.10,
-              4: availableTableWidth * 0.10,
-              5: availableTableWidth * 0.10,
-              6: availableTableWidth * 0.08,
-              7: availableTableWidth * 0.12,
-              8: availableTableWidth * 0.12,
-              9: availableTableWidth * 0.11,
-          };
-
-          autoTable(doc, {
-              startY: headerOffset + 3,
-              head: [tableHeaders],
-              body: tableData,
-              styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
-              headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
-              columnStyles: columnWidths,
-              margin: { left: tableLeftMargin, right: tableRightMargin },
-              didDrawPage: function(data) {
-                  doc.setFontSize(8);
-                  doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-              }
-          });
-
-          doc.save("Laporan_Pembayaran.pdf");
-      };
+      doc.save("Laporan_Pembayaran.pdf");
+    };
   };
 
   if (loading) return <div className="p-6 text-center text-lg text-gray-600">Memuat data pembayaran...</div>;
@@ -510,7 +518,21 @@ function Payment() {
       <div className="p-4 mb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-800">Daftar Pembayaran</h1>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-3">
+            <div className="relative w-full md:w-1/3">
+              <input
+                type="text"
+                placeholder="Cari berdasarkan Nama Toko..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-white border border-gray-300 text-sm px-4 py-2 rounded-md w-full pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <FontAwesomeIcon
+                icon={faSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+            </div>
+
             <div className="flex items-center gap-3">
               <DatePicker
                 selected={filterMonthYear}
@@ -524,18 +546,18 @@ function Payment() {
               {filterMonthYear && (
                 <button
                   onClick={() => setFilterMonthYear(null)}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-3 py-2 rounded-md transition-colors"
+                  className="w-36 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-3 py-2 rounded-md transition-colors"
                 >
                   Tampil Semua
                 </button>
               )}
             </div>
-            <div className="flex items-center justify-center bg-white border border-gray-300 rounded-md px-4 py-2 text-sm text-gray-800 font-semibold">
+            <div className="w-48 flex items-center justify-center bg-white border border-gray-300 rounded-md px-4 py-2 text-sm text-gray-800 font-semibold">
               Total: Rp {totalAmount.toLocaleString('id-ID')}
             </div>
             <button
               onClick={handleExportPDF}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md transition-colors shadow"
+              className="w-40 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md transition-colors shadow"
             >
               <FontAwesomeIcon icon={faFile} className="mr-2" /> Ekspor PDF
             </button>
@@ -602,25 +624,25 @@ function Payment() {
                       </td>
                       <td className="px-4 py-3 w-32">
                         <div className="relative">
-                            <select
-                                className={`bg-white border border-gray-300 rounded-md px-2 py-1 pr-8 text-xs appearance-none w-full
-                                  ${isStatusDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
-                                value={p.status}
-                                onChange={(e) => updateStatus(p.payment_id, e.target.value)}
-                                disabled={isStatusDisabled}
-                            >
-                                <option value="pending">{statusLabels.pending}</option>
-                                {p.payment_type === PaymentType.DOWNPAYMENT ? (
-                                    <option value="dp_paid">{statusLabels.dp_paid}</option>
-                                ) : (
-                                    <option value="completed">{statusLabels.completed}</option>
-                                )}
-                                <option value="failed">{statusLabels.failed}</option>
-                            </select>
-                            <FontAwesomeIcon
-                                icon={faChevronDown}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                            />
+                          <select
+                            className={`bg-white border border-gray-300 rounded-md px-2 py-1 pr-8 text-xs appearance-none w-full
+                              ${isStatusDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
+                            value={p.status}
+                            onChange={(e) => updateStatus(p.payment_id, e.target.value)}
+                            disabled={isStatusDisabled}
+                          >
+                            <option value="pending">{statusLabels.pending}</option>
+                            {p.payment_type === PaymentType.DOWNPAYMENT ? (
+                              <option value="dp_paid">{statusLabels.dp_paid}</option>
+                            ) : (
+                              <option value="completed">{statusLabels.completed}</option>
+                            )}
+                            <option value="failed">{statusLabels.failed}</option>
+                          </select>
+                          <FontAwesomeIcon
+                            icon={faChevronDown}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                          />
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -693,12 +715,12 @@ function Payment() {
       {showInvoiceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 p-4">
           <div
-                className={`
-                    bg-white rounded-lg shadow-xl max-w-lg md:max-w-xl w-full relative p-6
-                    transition-all duration-300 ease-out transform
-                    ${animateInvoiceModal ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
-                `}
-            >
+            className={`
+              bg-white rounded-lg shadow-xl max-w-lg md:max-w-xl w-full relative p-6
+              transition-all duration-300 ease-out transform
+              ${animateInvoiceModal ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
+            `}
+          >
             <div className="flex justify-between items-center mb-6 border-b pb-3">
               <h3 className="text-xl md:text-2xl font-bold text-gray-800">Buat Invoice Pelunasan</h3>
               <button onClick={onCloseInvoiceModal} className="text-gray-500 hover:text-gray-800 transition-colors">

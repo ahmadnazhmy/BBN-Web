@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import CryptoJS from 'crypto-js';
+import API_BASE_URL from '../api';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -35,7 +36,7 @@ function Login() {
     try {
       const encrypted = encryptData({ email, password });
 
-      const res = await fetch('https://bbn-web-production.up.railway.app/api/login', {
+      const res = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

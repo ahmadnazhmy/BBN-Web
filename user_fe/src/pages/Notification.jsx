@@ -1,34 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import API_BASE_URL from '../api';
 
 const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotificationCount }) => {
   const [notifications, setNotifications] = useState([]);
   const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
-        notificationButtonRef.current &&
-        !notificationButtonRef.current.contains(event.target)
-      ) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [dropdownRef, notificationButtonRef, setIsOpen]);
 
   const fetchNotifications = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
     try {
-      const res = await fetch('https://bbn-web-production.up.railway.app/api/notification', {
+      const res = await fetch(`${API_BASE_URL}/notification`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -54,7 +38,7 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     }
 
     try {
-      const res = await fetch(`https://bbn-web-production.up.railway.app/api/notification/${notificationId}/read`, {
+      const res = await fetch(`${API_BASE_URL}/notification/${notificationId}/read`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +78,7 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     }
 
     try {
-      const res = await fetch(`https://bbn-web-production.up.railway.app/api/order/${notif.order_id}/confirm-delivery`, {
+      const res = await fetch(`${API_BASE_URL}/order/${notif.order_id}/confirm-delivery`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +114,7 @@ const Notification = ({ isOpen, setIsOpen, notificationButtonRef, setParentNotif
     if (!window.confirm('Yakin mau hapus semua notifikasi?')) return;
 
     try {
-      const res = await fetch('https://bbn-web-production.up.railway.app/api/notification', {
+      const res = await fetch(`${API_BASE_URL}/notification`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

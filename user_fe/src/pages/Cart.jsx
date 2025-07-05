@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import Nav from '../components/Nav';
+import API_BASE_URL from '../api';
 
 const Cart = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem('user_id'); 
     const cartKey = `cart_${userId}`;
 
     const [cartItems, setCartItems] = useState([]);
@@ -17,6 +18,60 @@ const Cart = () => {
     const [deliveryMethod, setDeliveryMethod] = useState('delivery');
     const [paymentType, setPaymentType] = useState('fullpayment');
     const [isCheckoutComplete, setIsCheckoutComplete] = useState(false);
+
+    const [availableRewards, setAvailableRewards] = useState([]);
+    const [discountCodeInput, setDiscountCodeInput] = useState('');
+    const [appliedDiscount, setAppliedDiscount] = useState(null);
+    const [discountAmount, setDiscountAmount] = useState(0);
+    const [finalPrice, setFinalPrice] = useState(0);
+    const [discountError, setDiscountError] = useState('');
+
+    const calculateTotalPrice = useCallback(() => {
+        return cartItems.reduce((total, item) => total + item.unit_price * item.quantity, 0);
+    }, [cartItems]);
+
+    const calculateDownPayment = useCallback(() => {
+        return finalPrice * 0.2;
+    }, [finalPrice]);
+
+    useEffect(() => {
+        const fetchRewards = async () => {
+            const token = localStorage.getItem('token');
+            if (!userId || !token) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/user/${userId}/rewards`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const activeRewards = data.rewards.filter(reward =>
+                        !reward.is_used && new Date(reward.expiry_date) >= new Date()
+                    );
+                    setAvailableRewards(activeRewards);
+                } else {
+                    console.error('Failed to fetch rewards:', data.message);
+                }
+            } catch (error) {
+                console.error('Error fetching rewards:', error);
+            }
+        };
+
+        fetchRewards();
+    }, [userId]);
+
+    useEffect(() => {
+        let currentTotal = calculateTotalPrice();
+        let discountVal = 0;
+
+        if (appliedDiscount) {
+            if (appliedDiscount.discount_percentage) {
+                discountVal = currentTotal * (appliedDiscount.discount_percentage / 100);
+            }
+        }
+        setDiscountAmount(discountVal);
+        setFinalPrice(currentTotal - discountVal);
+    }, [cartItems, appliedDiscount, calculateTotalPrice]);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -31,6 +86,9 @@ const Cart = () => {
             setIsCheckoutComplete(true);
             localStorage.removeItem(cartKey);
             setCartItems([]);
+            setAppliedDiscount(null);
+            setDiscountAmount(0);
+            setFinalPrice(0);
         } else {
             const storedCart = JSON.parse(localStorage.getItem(cartKey)) || [];
             setCartItems(storedCart);
@@ -38,7 +96,7 @@ const Cart = () => {
 
         const fetchUser = async () => {
             try {
-                const response = await fetch('https://bbn-web-production.up.railway.app/api/profile', {
+                const response = await fetch(`${API_BASE_URL}/profile`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await response.json();
@@ -61,20 +119,61 @@ const Cart = () => {
         const newCart = [...cartItems];
         newCart[index].quantity = newQty;
         updateCart(newCart);
+        setAppliedDiscount(null);
+        setDiscountAmount(0);
+        setDiscountError('');
     };
 
     const removeItem = (index) => {
         const newCart = [...cartItems];
         newCart.splice(index, 1);
         updateCart(newCart);
+        setAppliedDiscount(null);
+        setDiscountAmount(0);
+        setDiscountError('');
     };
 
-    const getTotalPrice = () => {
-        return cartItems.reduce((total, item) => total + item.unit_price * item.quantity, 0);
-    };
+    const handleApplyDiscountCode = async () => {
+        if (!discountCodeInput.trim()) {
+            setDiscountError('Masukkan kode diskon.');
+            return;
+        }
+        if (!userId) {
+            setDiscountError('Informasi pengguna tidak tersedia. Harap login kembali.');
+            return;
+        }
 
-    const getDownPayment = () => {
-        return getTotalPrice() * 0.2;
+        setDiscountError('');
+
+        try {
+            const token = localStorage.getItem('token');
+            const payload = {
+                user_id: userId,
+                reward_code: discountCodeInput,
+                current_total_amount: calculateTotalPrice(),
+            };
+
+            const response = await fetch(`${API_BASE_URL}/apply-reward`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok && result.reward) {
+                setAppliedDiscount(result.reward);
+                alert(`Diskon ${result.reward.discount_percentage}% berhasil diterapkan!`);
+            } else {
+                setAppliedDiscount(null);
+                setDiscountAmount(0);
+                setDiscountError(result.message || 'Kode diskon tidak valid atau tidak dapat digunakan.');
+            }
+        } catch (error) {
+            console.error('Error applying discount:', error);
+            setDiscountError('Terjadi kesalahan saat menerapkan diskon.');
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -95,19 +194,22 @@ const Cart = () => {
         const token = localStorage.getItem('token');
 
         try {
-            const response = await fetch('https://bbn-web-production.up.railway.app/api/checkout', {
+            const checkoutPayload = {
+                delivery_method: deliveryMethod,
+                location: finalAddress,
+                cart: cartItems,
+                payment_type: paymentType,
+                amount: paymentType === 'downpayment' ? calculateDownPayment() : finalPrice,
+                applied_reward_id: appliedDiscount ? appliedDiscount.reward_id : null,
+            };
+
+            const response = await fetch(`${API_BASE_URL}/checkout`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    delivery_method: deliveryMethod,
-                    location: finalAddress,
-                    cart: cartItems,
-                    payment_type: paymentType,
-                    amount: paymentType === 'downpayment' ? getDownPayment() : getTotalPrice(),
-                }),
+                body: JSON.stringify(checkoutPayload),
             });
 
             const result = await response.json();
@@ -116,10 +218,13 @@ const Cart = () => {
                 alert(`Checkout berhasil!
 Lokasi tujuan: ${finalAddress}
 Metode penerimaan: ${deliveryMethod === 'delivery' ? 'Antar ke lokasi' : 'Ambil di pabrik'}
-Total bayar: Rp${paymentType === 'downpayment' ? getDownPayment().toLocaleString('id-ID') : getTotalPrice().toLocaleString('id-ID')}`);
+Total bayar: Rp${paymentType === 'downpayment' ? calculateDownPayment().toLocaleString('id-ID') : finalPrice.toLocaleString('id-ID')}`);
 
                 localStorage.removeItem(cartKey);
                 setCartItems([]);
+                setAppliedDiscount(null);
+                setDiscountAmount(0);
+                setFinalPrice(0);
 
                 navigate(`/invoice?payment_id=${result.payment_id}`);
             } else {
@@ -133,10 +238,10 @@ Total bayar: Rp${paymentType === 'downpayment' ? getDownPayment().toLocaleString
 
     if (isCheckoutComplete) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4"> 
-                <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg text-center max-w-sm w-full"> 
-                    <h2 className="text-2xl sm:text-3xl font-bold text-green-600 mb-4">Pembayaran Sukses!</h2> 
-                    <p className="text-gray-700 text-base sm:text-lg mb-6">Terima kasih telah berbelanja. Pembayaran Anda berhasil.</p> 
+            <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+                <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg text-center max-w-sm w-full">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-green-600 mb-4">Pembayaran Sukses!</h2>
+                    <p className="text-gray-700 text-base sm:text-lg mb-6">Terima kasih telah berbelanja. Pembayaran Anda berhasil.</p>
                     <button
                         onClick={() => navigate('/')}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-md transition duration-300 text-base"
@@ -164,7 +269,7 @@ Total bayar: Rp${paymentType === 'downpayment' ? getDownPayment().toLocaleString
                                         key={item.product_id}
                                         className="flex items-center justify-between py-4"
                                     >
-                                        <div className="flex-1 text-left mb-2 sm:mb-0"> 
+                                        <div className="flex-1 text-left mb-2 sm:mb-0">
                                             <h3 className="font-semibold text-base sm:text-lg text-gray-900 leading-tight">
                                                 {item.product_name} {item.type} Tebal {item.thick} {item.avg_weight_per_stick} Kg
                                             </h3>
@@ -191,13 +296,10 @@ Total bayar: Rp${paymentType === 'downpayment' ? getDownPayment().toLocaleString
                                         </div>
                                     </div>
                                 ))}
+
                                 <div className="text-right pt-4 sm:pt-6">
                                     <p className="text-lg sm:text-xl font-bold text-gray-800">
-                                        {paymentType === 'downpayment' ? (
-                                            <>DP 20% Total: Rp{getDownPayment().toLocaleString('id-ID')}</>
-                                        ) : (
-                                            <>Total: Rp{getTotalPrice().toLocaleString('id-ID')}</>
-                                        )}
+                                        Subtotal: Rp{calculateTotalPrice().toLocaleString('id-ID')}
                                     </p>
                                 </div>
                             </div>
@@ -208,6 +310,51 @@ Total bayar: Rp${paymentType === 'downpayment' ? getDownPayment().toLocaleString
                         {cartItems.length > 0 && (
                             <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-5 sm:p-6 space-y-5 sm:space-y-6">
                                 <h2 className="text-xl sm:text-2xl font-bold mb-4 text-gray-800 text-center md:text-left">Detail Checkout</h2>
+
+                                <div>
+                                    <label htmlFor="discount-code" className="block font-semibold text-gray-700 mb-2 text-sm sm:text-base">
+                                        Kode Diskon
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            id="discount-code"
+                                            value={discountCodeInput}
+                                            onChange={(e) => setDiscountCodeInput(e.target.value)}
+                                            className="flex-grow border border-gray-300 rounded-md px-3 py-2 sm:px-4 sm:py-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 text-sm sm:text-base"
+                                            placeholder="Masukkan kode diskon (contoh: DISCABCDE)"
+                                            disabled={!!appliedDiscount}
+                                        />
+                                        {!appliedDiscount ? (
+                                            <button
+                                                type="button"
+                                                onClick={handleApplyDiscountCode}
+                                                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition duration-200 ease-in-out text-sm sm:text-base"
+                                            >
+                                                Terapkan
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setAppliedDiscount(null);
+                                                    setDiscountAmount(0);
+                                                    setDiscountCodeInput('');
+                                                    setDiscountError('');
+                                                }}
+                                                className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200 ease-in-out text-sm sm:text-base"
+                                            >
+                                                Batal
+                                            </button>
+                                        )}
+                                    </div>
+                                    {discountError && <p className="text-red-500 text-sm mt-2">{discountError}</p>}
+                                    {appliedDiscount && (
+                                        <p className="text-green-600 text-sm mt-2">
+                                            Diskon {appliedDiscount.discount_percentage}% ({appliedDiscount.code}) berhasil diterapkan!
+                                        </p>
+                                    )}
+                                </div>
 
                                 <div>
                                     <label htmlFor="delivery-method" className="block font-semibold text-gray-700 mb-2 text-sm sm:text-base">
@@ -301,9 +448,27 @@ Total bayar: Rp${paymentType === 'downpayment' ? getDownPayment().toLocaleString
                                     </div>
                                 </div>
 
+                                {appliedDiscount && (
+                                    <div className="mt-2 text-right">
+                                        <p className="text-sm sm:text-base font-semibold text-green-700">
+                                            Diskon: - Rp{discountAmount.toLocaleString('id-ID')}
+                                        </p>
+                                    </div>
+                                )}
+                                <div className="mt-4 text-right">
+                                    <p className="text-lg sm:text-xl font-bold text-gray-800">
+                                        {paymentType === 'downpayment' ? (
+                                            <>DP 20% Total: Rp{calculateDownPayment().toLocaleString('id-ID')}</>
+                                        ) : (
+                                            <>Total Akhir: Rp{finalPrice.toLocaleString('id-ID')}</>
+                                        )}
+                                    </p>
+                                </div>
+
                                 <button
                                     type="submit"
                                     className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-2.5 px-4 rounded-md transition duration-200 ease-in-out shadow-md text-base sm:text-lg"
+                                    disabled={cartItems.length === 0}
                                 >
                                     Checkout
                                 </button>

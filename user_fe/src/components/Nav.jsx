@@ -4,6 +4,7 @@ import Logo from '../assets/images/logo.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHistory, faBell, faUser, faRightFromBracket, faCartShopping, faBars, faTimes, faHome } from '@fortawesome/free-solid-svg-icons';
 import Notification from '../pages/Notification';
+import API_BASE_URL from '../api';
 
 export default function Nav() {
   const isLoggedIn = localStorage.getItem('token') !== null;
@@ -54,7 +55,7 @@ export default function Nav() {
         const userId = localStorage.getItem('user_id');
         if (userId) {
           try {
-            const response = await fetch('https://bbn-web-production.up.railway.app/api/notification/count', {
+            const response = await fetch(`${API_BASE_URL}/notification/count`, {
               headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               }

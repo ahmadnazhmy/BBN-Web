@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faLock, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import API_BASE_URL from '../api';
 
 function Register() {
   const [username, setUsername] = useState('');
@@ -30,7 +31,7 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await axios.post('https://bbn-web-production.up.railway.app/api/admin/register', {
+      const response = await axios.post(`${API_BASE_URL}/admin/register`, {
         username,
         password, 
       });

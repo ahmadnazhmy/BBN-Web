@@ -3,13 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Logo from '../assets/images/logo.png';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import API_BASE_URL from '../api';
 
 function Invoice() {
   const navigate = useNavigate();
   const [invoiceData, setInvoiceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const invoiceRef = useRef(null); 
+  const invoiceRef = useRef(null);
 
   const statusLabels = {
     unpaid: 'Belum Dibayar',
@@ -26,7 +27,7 @@ function Invoice() {
     shipped: 'Diantar',
     delivered: 'Diterima',
     picked_up: 'Diambil',
-    cancel: 'Dibatalkan', 
+    cancel: 'Dibatalkan',
   };
 
   const deliveryMethodLabels = {
@@ -86,7 +87,7 @@ function Invoice() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token'); 
+    const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
       return;
@@ -102,7 +103,7 @@ function Invoice() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`https://bbn-web-production.up.railway.app/api/payment/by-id?payment_id=${paymentId}`, {
+        const res = await fetch(`${API_BASE_URL}/admin/order/by-id?payment_id=${paymentId}`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
@@ -220,20 +221,25 @@ function Invoice() {
       </div>
     );
 
-  if (!invoiceData || !invoiceData.payment || !invoiceData.user || !invoiceData.delivery || !invoiceData.items) {
+  if (!invoiceData || !invoiceData.payment || !invoiceData.user || !invoiceData.delivery || !invoiceData.items || !invoiceData.order) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <p className="text-lg text-red-600">Data invoice tidak lengkap. Mohon hubungi admin jika masalah berlanjut.</p>
       </div>
     );
   }
-  const { payment, user, delivery, items } = invoiceData;
+  const { payment, user, delivery, items, order } = invoiceData;
 
   const grandTotalFromItems = items.reduce((sum, item) => sum + parseFloat(item.subtotal || 0), 0);
 
+  const discountAmount = order.total_price && order.discounted_total_price
+    ? parseFloat(order.total_price) - parseFloat(order.discounted_total_price)
+    : 0;
+
   const calculateBalanceStatus = () => {
     const currentPaymentAmount = parseFloat(payment.amount || 0);
-    const remainingAfterThisPayment = grandTotalFromItems - currentPaymentAmount;
+    const effectiveTotal = parseFloat(order.discounted_total_price || order.total_price || 0);
+    const remainingAfterThisPayment = effectiveTotal - currentPaymentAmount;
 
     if (remainingAfterThisPayment < 0) {
       return (
@@ -288,7 +294,7 @@ function Invoice() {
                 <span className="font-semibold">Email:</span> {user?.email || '-'}
               </p>
               <p className="text-gray-700">
-                <span className="font-semibold">Telepon:</span> {payment?.phone || user?.phone_number || '-'}
+                <span className="font-semibold">Telepon:</span> {user?.phone || '-'}
               </p>
             </div>
 
@@ -299,7 +305,7 @@ function Invoice() {
               </p>
               <p className="text-gray-700">
                 <span className="font-semibold">Tanggal Order:</span>{' '}
-                {payment?.order_date ? formatDate(payment.order_date) : '-'}
+                {order?.order_date ? formatDate(order.order_date) : '-'}
               </p>
               <p className="text-gray-700">
                 <span className="font-semibold">Metode Pembayaran:</span>{' '}
@@ -366,6 +372,24 @@ function Invoice() {
                     Rp{grandTotalFromItems.toLocaleString('id-ID')}
                   </td>
                 </tr>
+                {discountAmount > 0 && (
+                  <tr className="bg-gray-50">
+                    <td colSpan="3" className="px-4 py-3 text-right font-semibold text-gray-800">
+                      Diskon ({order.applied_reward_details?.code || 'Diskon'} {order.applied_reward_details?.discount_percentage ? `(${order.applied_reward_details.discount_percentage}%)` : ''}):
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-green-600">
+                       Rp{discountAmount.toLocaleString('id-ID')}
+                    </td>
+                  </tr>
+                )}
+                <tr className="bg-gray-50">
+                  <td colSpan="3" className="px-4 py-3 text-right font-semibold text-gray-800">
+                    Total Setelah Diskon:
+                  </td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-900">
+                    Rp{Number(order.discounted_total_price || grandTotalFromItems).toLocaleString('id-ID')}
+                  </td>
+                </tr>
                 <tr className="bg-gray-50">
                   <td colSpan="3" className="px-4 py-3 text-right font-semibold text-gray-800">
                     Jumlah Pembayaran Ini ({formatPaymentType(payment?.payment_type) || '-'}):
@@ -394,7 +418,7 @@ function Invoice() {
               <div className="mt-4 proof-wrapper">
                 <p className="proof-text text-sm text-gray-600 mb-2">Bukti Pembayaran Anda:</p>
                 <img
-                  src={payment.proof_of_payment}
+                  src="${payment.proof_of_payment}"
                   alt="Bukti Pembayaran"
                   className="proof-image w-full max-w-sm h-auto object-contain border border-gray-300 rounded-md shadow-sm"
                 />
@@ -408,7 +432,7 @@ function Invoice() {
         <div className="flex flex-col sm:flex-row justify-end gap-3 p-6 bg-gray-50 border-t border-gray-200">
           <button
             id="back-to-orders-button-user"
-            onClick={() => navigate('/history')} 
+            onClick={() => navigate('/history')}
             className="px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200 ease-in-out font-semibold shadow-sm w-full sm:w-auto"
           >
             Kembali ke Daftar Pesanan

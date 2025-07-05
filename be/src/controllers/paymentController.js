@@ -19,6 +19,31 @@ function getJakartaDateTime() {
   return jakartaTimeString.replace(/(\d{4})-(\d{2})-(\d{2}),? (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3 $4:$5:$6');
 }
 
+function calculateOverdueFine(amount, dueDate) {
+  if (!dueDate) {
+    return { overdueDays: 0, fine_amount: 0, totalAmountWithFine: amount };
+  }
+
+  const now = new Date(getJakartaDateTime());
+  const due = new Date(dueDate);
+
+  now.setHours(0, 0, 0, 0);
+  due.setHours(0, 0, 0, 0);
+
+  if (now <= due) {
+    return { overdueDays: 0, fine_amount: 0, totalAmountWithFine: amount };
+  }
+
+  const timeDiff = now.getTime() - due.getTime();
+  const overdueDays = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+  const dailyFine = 50000; 
+  const fine_amount = dailyFine * overdueDays;
+  const totalAmountWithFine = amount + fine_amount;
+
+  return { overdueDays, fine_amount, totalAmountWithFine };
+}
+
 async function getOrderPaymentDetailsWithItems(req, res) {
   const { payment_id } = req.query;
   if (!payment_id) return res.status(400).json({ error: 'payment_id harus disertakan' });
@@ -28,7 +53,7 @@ async function getOrderPaymentDetailsWithItems(req, res) {
     if (paymentRows.length === 0) return res.status(404).json({ error: 'Payment tidak ditemukan' });
     const payment = paymentRows[0];
 
-    const [orderRows] = await pool.query('SELECT * FROM \`order\`WHERE order_id = ?', [payment.order_id]);
+    const [orderRows] = await pool.query('SELECT * FROM `order`WHERE order_id = ?', [payment.order_id]);
     if (orderRows.length === 0) return res.status(404).json({ error: 'Order tidak ditemukan' });
     const order = orderRows[0];
 
@@ -67,63 +92,63 @@ async function getOrderPaymentDetailsWithItems(req, res) {
 }
 
 const uploadProof = async (req, res) => {
-    const user_id = req.user.id;
-    const order_id = req.body.order_id;
-    const amount = parseInt(req.body.amount) || 0;
-    const proofUrl = req.file?.path;
-    const paymentType = req.body.payment_type || '';
-    const paymentTypeLower = paymentType.toLowerCase();
+  const user_id = req.user.id;
+  const order_id = req.body.order_id;
+  const amount = parseInt(req.body.amount) || 0;
+  const proofUrl = req.file?.filename;
+  const paymentType = req.body.payment_type || '';
+  const paymentTypeLower = paymentType.toLowerCase();
 
-    if (paymentTypeLower && !['downpayment', 'fullpayment', 'settlement'].includes(paymentTypeLower)) {
-        return res.status(400).json({ message: 'Invalid payment type' });
+  if (paymentTypeLower && !['downpayment', 'fullpayment', 'settlement'].includes(paymentTypeLower)) {
+    return res.status(400).json({ message: 'Invalid payment type' });
+  }
+
+  if (!proofUrl) {
+    return res.status(400).json({ error: 'Bukti pembayaran tidak ditemukan' });
+  }
+
+  const payment_method = req.body.payment_method;
+  const validMethods = [
+    'bank_mandiri', 'bank_bca', 'bank_bni', 'bank_bri',
+    'bank_btn', 'bank_bsi', 'shopeepay', 'gopay', 'dana'
+  ];
+  if (!payment_method || !validMethods.includes(payment_method)) {
+    return res.status(400).json({ error: 'Metode pembayaran tidak valid' });
+  }
+
+  try {
+    const conn = await db.getConnection();
+    const [orders] = await conn.execute(`SELECT order_id FROM \`order\` WHERE order_id = ? AND user_id = ?`, [order_id, user_id]);
+
+    if (orders.length === 0) {
+      conn.release();
+      return res.status(404).json({ error: 'Order tidak ditemukan atau bukan milik Anda' });
     }
 
-    if (!proofUrl) {
-        return res.status(400).json({ error: 'Bukti pembayaran tidak ditemukan' });
+    const allowedStatuses = ['pending_dp', 'pending_fullpayment', 'failed'];
+    const placeholders = allowedStatuses.map(() => '?').join(', ');
+    const sql = `SELECT payment_id FROM payment WHERE order_id = ? AND user_id = ? AND status IN (${placeholders}) LIMIT 1`;
+    const params = [order_id, user_id, ...allowedStatuses];
+    const [existingPayments] = await conn.execute(sql, params);
+
+    const initialStatus = 'pending_verification';
+    const currentJakartaTime = getJakartaDateTime();
+
+    if (existingPayments.length > 0) {
+      const paymentId = existingPayments[0].payment_id;
+      await conn.execute(`UPDATE payment SET proof_of_payment = ?, amount = ?, payment_method = ?, status = ?, message = NULL, created_at = ? WHERE payment_id = ?`, [proofUrl, amount, payment_method, initialStatus, currentJakartaTime, paymentId]);
+    } else {
+      await conn.execute(`INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment, payment_method, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, [order_id, user_id, amount, initialStatus, proofUrl, payment_method, currentJakartaTime]);
     }
 
-    const payment_method = req.body.payment_method;
-    const validMethods = [
-        'bank_mandiri', 'bank_bca', 'bank_bni', 'bank_bri',
-        'bank_btn', 'bank_bsi', 'shopeepay', 'gopay', 'dana'
-    ];
-    if (!payment_method || !validMethods.includes(payment_method)) {
-        return res.status(400).json({ error: 'Metode pembayaran tidak valid' });
-    }
+    await conn.execute(`UPDATE \`order\` SET status = 'pending' WHERE order_id = ?`, [order_id]);
 
-    try {
-        const conn = await db.getConnection();
-        const [orders] = await conn.execute(`SELECT order_id FROM \`order\` WHERE order_id = ? AND user_id = ?`, [order_id, user_id]);
-
-        if (orders.length === 0) {
-            conn.release();
-            return res.status(404).json({ error: 'Order tidak ditemukan atau bukan milik Anda' });
-        }
-
-        const allowedStatuses = ['pending_dp', 'pending_fullpayment', 'failed'];
-        const placeholders = allowedStatuses.map(() => '?').join(', ');
-        const sql = `SELECT payment_id FROM payment WHERE order_id = ? AND user_id = ? AND status IN (${placeholders}) LIMIT 1`;
-        const params = [order_id, user_id, ...allowedStatuses];
-        const [existingPayments] = await conn.execute(sql, params);
-
-        const initialStatus = 'pending_verification';
-        const currentJakartaTime = getJakartaDateTime();
-
-        if (existingPayments.length > 0) {
-            const paymentId = existingPayments[0].payment_id;
-            await conn.execute(`UPDATE payment SET proof_of_payment = ?, amount = ?, payment_method = ?, status = ?, message = NULL, created_at = ? WHERE payment_id = ?`, [proofUrl, amount, payment_method, initialStatus, currentJakartaTime, paymentId]);
-        } else {
-            await conn.execute(`INSERT INTO payment (order_id, user_id, amount, status, proof_of_payment, payment_method, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, [order_id, user_id, amount, initialStatus, proofUrl, payment_method, currentJakartaTime]);
-        }
-
-        await conn.execute(`UPDATE \`order\` SET status = 'pending' WHERE order_id = ?`, [order_id]);
-
-        conn.release();
-        res.status(201).json({ message: 'Bukti pembayaran berhasil diupload', proofUrl });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Gagal upload bukti pembayaran' });
-    }
+    conn.release();
+    res.status(201).json({ message: 'Bukti pembayaran berhasil diupload', proofUrl });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Gagal upload bukti pembayaran' });
+  }
 };
 
 const getAllPayments = async (req, res) => {
@@ -166,7 +191,28 @@ const getAllPayments = async (req, res) => {
       return res.status(404).json({ error: 'Tidak ada data pembayaran' });
     }
 
-    return res.status(200).json(rows);
+    const paymentsWithFines = rows.map(payment => {
+      const { amount, due_date, status } = payment;
+      if (!['completed', 'dp_paid', 'fullpayment_paid', 'pending_verification'].includes(status) && due_date) {
+        const { overdueDays, fine_amount, totalAmountWithFine } = calculateOverdueFine(amount, due_date);
+        return {
+          ...payment,
+          amount_original: amount,
+          fine_amount: fine_amount,
+          total_amount_due: totalAmountWithFine,
+          overdue_days: overdueDays
+        };
+      }
+      return {
+        ...payment,
+        amount_original: amount,
+        fine_amount: 0,
+        total_amount_due: amount,
+        overdue_days: 0
+      };
+    });
+
+    return res.status(200).json(paymentsWithFines);
   } catch (err) {
     console.error('Error dalam getAllPayments:', err);
     res.status(500).json({ error: 'Gagal mengambil data pembayaran', detail: err.message });
@@ -188,7 +234,6 @@ const updatePaymentStatus = async (req, res) => {
   ];
 
   if (!status || !allowedStatus.includes(status)) {
-    console.log(`[DEBUG] Status "${status}" tidak valid atau tidak ditemukan.`);
     return res.status(400).json({ error: 'Status tidak valid' });
   }
 
@@ -370,6 +415,12 @@ const getPaymentByPaymentId = async (req, res) => {
 
     const payment = paymentRows[0];
     const orderId = payment.order_id;
+
+    let fineDetails = { overdueDays: 0, fine_amount: 0, totalAmountWithFine: payment.amount };
+    if (!['completed', 'dp_paid', 'fullpayment_paid', 'pending_verification'].includes(payment.status) && payment.due_date) {
+        fineDetails = calculateOverdueFine(payment.amount, payment.due_date);
+    }
+
     const [items] = await db.execute(`
       SELECT
           oi.*,
@@ -386,6 +437,10 @@ const getPaymentByPaymentId = async (req, res) => {
     res.json({
       payment: {
           ...payment,
+          amount_original: payment.amount,
+          fine_amount: fineDetails.fine_amount,
+          total_amount_due: fineDetails.totalAmountWithFine,
+          overdue_days: fineDetails.overdueDays
       },
       user: {
         shop_name: payment.shop_name,
@@ -420,8 +475,8 @@ async function getUnpaidCount(req, res) {
 
     const [rows] = await db.query(
       `SELECT COUNT(*) AS count
-         FROM \`order\`
-         WHERE user_id = ? AND LOWER(status) = 'unpaid'`,
+          FROM \`order\`
+          WHERE user_id = ? AND LOWER(status) = 'unpaid'`,
       [userId]
     );
 
@@ -440,7 +495,7 @@ const createInvoiceSettlement = async (req, res) => {
   try {
     const { order_id, due_date } = req.body;
     const [orders] = await db.query(
-      'SELECT total_price, user_id FROM \`order\` WHERE order_id = ?',
+      'SELECT total_price, user_id FROM `order` WHERE order_id = ?',
       [order_id]
     );
 
@@ -452,9 +507,9 @@ const createInvoiceSettlement = async (req, res) => {
     const orderUserId = orders[0].user_id;
 
     const [payments] = await db.query(
-      `SELECT COALESCE(SUM(amount), 0) as total_paid 
-       FROM payment 
-       WHERE order_id = ? AND status IN ('dp_paid', 'completed')`,
+      `SELECT COALESCE(SUM(amount), 0) as total_paid
+        FROM payment
+        WHERE order_id = ? AND status IN ('dp_paid', 'completed')`,
       [order_id]
     );
     const totalPaid = payments[0].total_paid;
@@ -475,9 +530,9 @@ const createInvoiceSettlement = async (req, res) => {
     }
 
     const [insertResult] = await db.execute(
-      `INSERT INTO payment 
-       (order_id, user_id, payment_type, amount, status, created_at, due_date) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO payment
+        (order_id, user_id, payment_type, amount, status, created_at, due_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         order_id,
         orderUserId,

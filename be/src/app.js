@@ -1,9 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config();
+const cron = require('node-cron'); 
+const cancelOverdueOrders = require('./tasks/cancelOverdueOrders');
+
+const envFile = process.env.NODE_ENV === 'production' ? '.env.prod' : '.env.dev';
+require('dotenv').config({ path: path.resolve(__dirname, envFile) });
 
 const app = express();
+
+if (process.env.UPLOAD_TARGET === 'local') {
+  app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+}
 
 const productRouter = require('./routes/productRoutes');
 const authRouter = require('./routes/authRoutes');
@@ -14,6 +22,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const historyRoutes = require('./routes/historyRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const rewardRoutes = require('./routes/rewardRoutes');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -26,7 +35,7 @@ const allowedOrigins = [
   'https://bbn-web-ahmad-nazhmy-zahrians-projects.vercel.app',
   'https://bbn-web-i9wq.vercel.app',
   'http://localhost:5173',
-  'http://localhost:5174',
+  'http://localhost:5175',
 ];
 
 const corsOptions = {
@@ -52,6 +61,7 @@ app.use('/api', paymentRoutes);
 app.use('/api', historyRoutes);
 app.use('/api', notificationRoutes);
 app.use('/api', dashboardRoutes);
+app.use('/api', rewardRoutes)
 
 app.get('/', (req, res) => {
   res.send('API berjalan');
@@ -60,5 +70,11 @@ app.get('/', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint tidak ditemukan' });
 });
+
+cron.schedule('*/1 * * * *', () => {
+    cancelOverdueOrders();
+});
+
+cancelOverdueOrders();
 
 module.exports = app;

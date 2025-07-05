@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faLock, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import API_BASE_URL from '../api';
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -22,7 +23,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch('https://bbn-web-production.up.railway.app/api/admin/login', {
+      const res = await fetch(`${API_BASE_URL}/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import Catalog from './Catalog';
+import API_BASE_URL from '../api';
 
 const Product = () => {
     const [productName, setProductName] = useState('');
@@ -16,7 +17,7 @@ const Product = () => {
         setLoading(true);
         setError(null);
         try {
-            let url = 'https://bbn-web-production.up.railway.app/api/product';
+            let url = `${API_BASE_URL}/product`;
             if (productName) {
                 const params = new URLSearchParams();
                 params.append('product_name', productName);
@@ -59,7 +60,7 @@ const Product = () => {
 
         try {
             await axios.post(
-                'https://bbn-web-production.up.railway.app/api/cart',
+                `${API_BASE_URL}/cart`,
                 {
                     productId: p.product_id,
                     quantity: qty,

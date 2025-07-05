@@ -10,6 +10,7 @@ import Contact from '../components/Contact';
 import Company from '../components/Company';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
+import API_BASE_URL from '../api';
 
 function Home() {
   const [unpaidCount, setUnpaidCount] = useState(0);
@@ -21,7 +22,7 @@ function Home() {
       if (!token) return;
 
       try {
-        const res = await fetch('https://bbn-web-production.up.railway.app/api/unpaid-count', {
+        const res = await fetch(`${API_BASE_URL}/unpaid-count`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,

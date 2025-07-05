@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faStore, faPhone, faMapMarkerAlt, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import Nav from '../components/Nav';
 import { useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../api';
 
 function EditProfile() {
   const [shop_name, setShopName] = useState('');
@@ -27,7 +28,7 @@ function EditProfile() {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch('https://bbn-web-production.up.railway.app/api/profile', {
+        const res = await fetch(`${API_BASE_URL}/profile`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -83,7 +84,7 @@ function EditProfile() {
     const updatedData = { shop_name, email, phone, address };
 
     try {
-      const res = await fetch('https://bbn-web-production.up.railway.app/api/profile', {
+      const res = await fetch(`${API_BASE_URL}/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

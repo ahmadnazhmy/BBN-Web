@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faExclamationCircle, faCheckCircle, faInfoCircle, faUpload, faSpinner } from '@fortawesome/free-solid-svg-icons'; 
+import { faChevronDown, faExclamationCircle, faCheckCircle, faInfoCircle, faUpload, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import API_BASE_URL from '../api';
 
 function Payment() {
   const location = useLocation();
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
-  const [order, setOrder] = useState(null); 
+  const [order, setOrder] = useState(null);
   const [payment, setPayment] = useState(null);
   const [allPaymentsForOrder, setAllPaymentsForOrder] = useState([]);
   const [paymentType, setPaymentType] = useState("downpayment");
@@ -21,7 +22,7 @@ function Payment() {
   const paymentIdFromUrl = queryParams.get('payment_id');
 
   const formatCurrency = (value) => {
-    if (isNaN(value) || value === null) return 'Rp 0';
+    if (isNaN(value) || value === null || value === undefined) return 'Rp 0';
     return `Rp ${Number(value).toLocaleString('id-ID')}`;
   };
 
@@ -34,7 +35,8 @@ function Payment() {
       case 'pending_dp': return 'Menunggu Verifikasi DP';
       case 'pending_fullpayment': return 'Menunggu Verifikasi Pelunasan';
       case 'pending_settlement': return 'Menunggu Verifikasi Pelunasan';
-      case 'settlement': return 'Sudah Dibayar';
+      case 'pending_verification': return 'Menunggu Verifikasi';
+      case 'settlement': return 'Sudah Dibayar'; 
       default: return 'Status Tidak Dikenal';
     }
   }, []);
@@ -55,52 +57,48 @@ function Payment() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`https://bbn-web-production.up.railway.app/api/payment/order-details?payment_id=${paymentIdFromUrl}`, {
+        const res = await fetch(`${API_BASE_URL}/payment/by-id?payment_id=${paymentIdFromUrl}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!res.ok) {
           const errorData = await res.json();
-          throw new Error(errorData.message || `HTTP error! status: ${res.status}`);
+          throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
         }
 
         const data = await res.json();
-
-        if (!data.order || !data.payment) {
-            setError('Data order atau pembayaran tidak ditemukan.');
-            setLoading(false);
-            return;
+        
+        if (!data.payment) {
+          setError('Data pembayaran tidak ditemukan.');
+          setLoading(false);
+          return;
         }
 
-        setOrder({ ...data.order, items: data.items || [] });
-        setPayment(data.payment); 
-        setAllPaymentsForOrder(data.payments || []);
+        setOrder({
+            order_id: data.payment.order_id,
+            user_id: data.payment.user_id,
+            total_price: data.payment.amount_original,
+            order_date: data.delivery.order_date,
+            location: data.delivery.location,
+            delivery_method: data.delivery.delivery_method,
+            status: data.payment.order_status,
+            items: data.items || [],
+        });
+        setPayment(data.payment);
 
-        const currentOrderTotalPrice = data.order.total_price || 0;
-        const allPayments = data.payments || [];
-
-        const totalPaidDP = allPayments
-          .filter(p => p.payment_type === 'downpayment' && (p.status === 'dp_paid' || p.status === 'completed'))
-          .reduce((sum, p) => sum + (p.amount || 0), 0);
-
-        const currentPayment = data.payment;
-
-
-        if (currentPayment.payment_type === 'fullpayment') {
-          setPaymentType('fullpayment');
-          setAmount(currentOrderTotalPrice.toString());
-        } else if (currentPayment.payment_type === 'downpayment') {
-          setPaymentType('downpayment');
-          const requiredDP = Math.ceil(currentOrderTotalPrice * 0.2);
-          setAmount(requiredDP.toString());
-        } else if (currentPayment.payment_type === 'settlement') {
-          setPaymentType('settlement');
-          const remaining = currentOrderTotalPrice - totalPaidDP;
-          setAmount(remaining > 0 ? remaining.toString() : '0');
+        const allPaymentsRes = await fetch(`${API_BASE_URL}/payment?order_id=${data.payment.order_id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (allPaymentsRes.ok) {
+            const allPaymentsData = await allPaymentsRes.json();
+            setAllPaymentsForOrder(allPaymentsData || []);
         } else {
-          setPaymentType('downpayment');
-          setAmount(Math.ceil(currentOrderTotalPrice * 0.2).toString());
+            console.warn('Could not fetch all payments for order:', allPaymentsRes.status);
+            setAllPaymentsForOrder([]);
         }
+
+        setPaymentType(data.payment.payment_type || 'downpayment');
+        setAmount(data.payment.total_amount_due ? data.payment.total_amount_due.toString() : data.payment.amount_original.toString());
 
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -118,7 +116,7 @@ function Payment() {
   }, [paymentIdFromUrl, token, navigate, location.pathname, translatePaymentStatus]);
 
 
-  const orderId = order?.order_id || order?.id;
+  const orderId = order?.order_id;
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -131,21 +129,21 @@ function Payment() {
       alert('Mohon pilih metode pembayaran terlebih dahulu.');
       return;
     }
-    if (file.size > 2 * 1024 * 1024) { 
+    if (file.size > 2 * 1024 * 1024) {
       alert('Ukuran file maksimal 2MB.');
       return;
     }
     if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-        alert('Format file tidak didukung. Mohon unggah gambar JPG, JPEG, atau PNG.');
-        return;
+      alert('Format file tidak didukung. Mohon unggah gambar JPG, JPEG, atau PNG.');
+      return;
     }
 
     const numAmount = Number(amount);
     const orderTotalPrice = order?.total_price || 0;
 
     const totalPaidDP = allPaymentsForOrder
-      .filter(p => p.order_id === orderId && (p.payment_type === 'downpayment' || p.payment_type === 'settlement') && (p.status === 'dp_paid' || p.status === 'completed'))
-      .reduce((sum, p) => sum + (p.amount || 0), 0);
+        .filter(p => p.order_id === orderId && (p.status === 'dp_paid' || p.status === 'fullpayment_paid' || p.status === 'completed'))
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
 
     const remainingAmountToPay = orderTotalPrice - totalPaidDP;
     const requiredDP = Math.ceil(orderTotalPrice * 0.2);
@@ -156,22 +154,24 @@ function Payment() {
     }
 
     if (paymentType === 'downpayment') {
-      if (numAmount !== requiredDP) {
-        alert(`Untuk DP, jumlah harus tepat ${formatCurrency(requiredDP)}.`);
+      const expectedAmount = payment?.total_amount_due > 0 ? payment.total_amount_due : requiredDP;
+      if (numAmount !== expectedAmount) {
+        alert(`Untuk DP, jumlah harus tepat ${formatCurrency(expectedAmount)}.`);
         return;
       }
     } else if (paymentType === 'settlement') {
-      if (remainingAmountToPay <= 0) {
-        alert('Pesanan ini sudah lunas, tidak perlu pelunasan.');
-        return;
-      }
-      if (numAmount < remainingAmountToPay) {
-        const confirmPartial = window.confirm(`Jumlah yang Anda masukkan (${formatCurrency(numAmount)}) kurang dari sisa pelunasan (${formatCurrency(remainingAmountToPay)}). Lanjutkan dengan pembayaran sebagian?`);
-        if (!confirmPartial) return;
+      const expectedAmount = payment?.total_amount_due > 0 ? payment.total_amount_due : remainingAmountToPay;
+      if (numAmount < expectedAmount && expectedAmount > 0) {
+          const confirmPartial = window.confirm(`Jumlah yang Anda masukkan (${formatCurrency(numAmount)}) kurang dari sisa pelunasan (${formatCurrency(expectedAmount)}). Lanjutkan dengan pembayaran sebagian?`);
+          if (!confirmPartial) return;
+      } else if (remainingAmountToPay <= 0 && expectedAmount <= 0) {
+          alert('Pesanan ini sudah lunas, tidak perlu pelunasan.');
+          return;
       }
     } else if (paymentType === 'fullpayment') {
-      if (numAmount !== orderTotalPrice) {
-        alert(`Untuk pembayaran penuh, jumlah harus tepat ${formatCurrency(orderTotalPrice)}.`);
+      const expectedAmount = payment?.total_amount_due > 0 ? payment.total_amount_due : orderTotalPrice;
+      if (numAmount !== expectedAmount) {
+        alert(`Untuk pembayaran penuh, jumlah harus tepat ${formatCurrency(expectedAmount)}.`);
         return;
       }
     }
@@ -187,11 +187,13 @@ function Payment() {
     formData.append('amount', numAmount);
     formData.append('payment_method', method);
     formData.append('payment_type', paymentType);
-    formData.append('payment_id', paymentIdFromUrl);
+    if (paymentIdFromUrl) {
+      formData.append('payment_id', paymentIdFromUrl);
+    }
 
     setLoadingUpload(true);
     try {
-      const res = await fetch('https://bbn-web-production.up.railway.app/api/upload-proof', {
+      const res = await fetch(`${API_BASE_URL}/upload-proof`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -223,7 +225,7 @@ function Payment() {
 
     setLoadingUpload(true);
     try {
-      const res = await fetch(`https://bbn-web-production.up.railway.app/api/order/${orderId}/cancel-payment`, {
+      const res = await fetch(`${API_BASE_URL}/order/${orderId}/cancel-payment`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -299,19 +301,18 @@ function Payment() {
   };
 
   const totalPaidDPForDisplay = allPaymentsForOrder
-    .filter(p => p.order_id === orderId && (p.payment_type === 'downpayment' || p.payment_type === 'settlement') && (p.status === 'dp_paid' || p.status === 'completed'))
+    .filter(p => p.order_id === orderId && (p.status === 'dp_paid' || p.status === 'fullpayment_paid' || p.status === 'completed'))
     .reduce((sum, p) => sum + (p.amount || 0), 0);
 
   const remainingAmountForDisplay = order.total_price - totalPaidDPForDisplay;
-  const isOrderFullyPaid = remainingAmountForDisplay <= 0 && order.order_status !== 'unpaid';
+  const isOrderFullyPaid = remainingAmountForDisplay <= 0 && (order.status === 'processing' || order.status === 'completed');
+
 
   const shouldShowPaymentForm = payment && (
     payment.status === 'failed' ||
+    payment.status === 'pending_verification' ||
     (payment.status === 'pending_dp' && payment.payment_type === 'downpayment') ||
-    (payment.status === 'pending_fullpayment' && payment.payment_type === 'fullpayment') ||
-    (payment.status === 'pending_fullpayment' && payment.payment_type === 'settlement') || 
-    (payment.status === 'pending_settlement' && payment.payment_type === 'settlement') ||
-    (!payment.status && order.order_status === 'unpaid')
+    (payment.status === 'pending_fullpayment' && (payment.payment_type === 'fullpayment' || payment.payment_type === 'settlement'))
   ) && !isOrderFullyPaid;
 
 
@@ -333,22 +334,31 @@ function Payment() {
               <p className="font-semibold">Tanggal Pesanan:</p> <p>{formatDate(order.order_date)}</p>
               <p className="font-semibold">Tipe Pembayaran Ini:</p>
               <p className="capitalize font-semibold text-indigo-700">
-                {paymentType === 'downpayment' ? 'Down Payment (DP) 20%'
-                  : paymentType === 'fullpayment' ? 'Pembayaran Penuh'
-                    : paymentType === 'settlement' ? 'Pelunasan Sisa'
+                {payment?.payment_type === 'downpayment' ? 'Down Payment (DP) 20%'
+                  : payment?.payment_type === 'fullpayment' ? 'Pembayaran Penuh'
+                    : payment?.payment_type === 'settlement' ? 'Pelunasan Sisa'
                       : '-'}
               </p>
+              {payment?.due_date && (
+                <>
+                  <p className="font-semibold">Jatuh Tempo Pembayaran:</p>
+                  <p className={`font-semibold ${payment.overdue_days > 0 ? 'text-red-600' : 'text-gray-700'}`}>
+                    {formatDate(payment.due_date).split(',')[0]}
+                    {payment.overdue_days > 0 && ` (Lewat ${payment.overdue_days} hari)`}
+                  </p>
+                </>
+              )}
             </div>
             <div className="mt-4 pt-4 border-t border-gray-200">
                 <p className="font-bold text-md text-gray-800 mb-2">No. Rekening Pembayaran:</p>
                 <div className="flex items-center justify-between bg-blue-100 border border-blue-200 rounded-md p-3">
-                    <span className="font-bold text-blue-800 text-lg">Mandiri: 1670006211527</span>
-                    <button
-                        onClick={() => navigator.clipboard.writeText('1670006211527').then(() => alert('Nomor rekening berhasil disalin!'))}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium ml-3 flex-shrink-0"
-                    >
-                        Salin
-                    </button>
+                  <span className="font-bold text-blue-800 text-lg">Mandiri: 1670006211527</span>
+                  <button
+                      onClick={() => navigator.clipboard.writeText('1670006211527').then(() => alert('Nomor rekening berhasil disalin!'))}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium ml-3 flex-shrink-0"
+                  >
+                    Salin
+                  </button>
                 </div>
                 <p className="text-sm text-gray-600 mt-2">Mohon transfer sesuai jumlah yang tertera ke rekening di atas.</p>
             </div>
@@ -371,7 +381,7 @@ function Payment() {
               {payment?.proof_of_payment && (
                 <div className="mt-3">
                   <a
-                    href={p.proof_of_payment}
+                    href={payment.proof_of_payment}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline font-medium text-sm"
@@ -405,14 +415,16 @@ function Payment() {
 
               <div className="form-group">
                 <label htmlFor="amount" className="block text-base font-medium text-gray-700 mb-2">
-                  Jumlah Pembayaran
+                  Jumlah Pembayaran {payment?.fine_amount > 0 && (
+                    <span className="text-red-600 font-bold ml-2">(Termasuk denda {formatCurrency(payment.fine_amount)})</span>
+                  )}
                 </label>
                 <input
                   type="text"
                   id="amount"
-                  value={formatCurrency(amount).replace('Rp', '').trim()} 
+                  value={formatCurrency(amount).replace('Rp', '').trim()}
                   onChange={(e) => {
-                    const rawValue = e.target.value.replace(/[^0-9]/g, ''); 
+                    const rawValue = e.target.value.replace(/[^0-9]/g, '');
                     setAmount(rawValue);
                   }}
                   onBlur={() => {
@@ -420,8 +432,7 @@ function Payment() {
                     if (!isNaN(val)) setAmount(val.toString());
                   }}
                   className="w-full border border-gray-300 rounded-md px-4 py-2.5 text-lg font-semibold text-gray-900 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                  placeholder="Masukkan jumlah pembayaran"
-                  readOnly={paymentType === 'fullpayment' || paymentType === 'downpayment' || paymentType === 'settlement'}
+                  readOnly={true}
                   required
                 />
               </div>
@@ -505,15 +516,21 @@ function Payment() {
                 >
                   Bayar Nanti
                 </button>
-                {paymentType !== 'settlement' && (
-                  <button
-                    type="button"
-                    onClick={handleCancelPayment}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg transition-colors duration-200 font-semibold text-lg"
-                    disabled={loadingUpload}
-                  >
-                    {loadingUpload ? 'Membatalkan...' : 'Batalkan Pesanan Ini'}
-                  </button>
+                {
+                    !isOrderFullyPaid &&
+                    (payment.status === 'pending_dp' || payment.status === 'pending_fullpayment' || payment.status === 'failed') &&
+                    (
+                        (payment.payment_type === 'downpayment') ||
+                        (payment.payment_type === 'fullpayment')
+                    ) && (
+                    <button
+                      type="button"
+                      onClick={handleCancelPayment}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg transition-colors duration-200 font-semibold text-lg"
+                      disabled={loadingUpload}
+                    >
+                      {loadingUpload ? 'Membatalkan...' : 'Batalkan Pesanan Ini'}
+                    </button>
                 )}
               </div>
             </form>
@@ -565,19 +582,32 @@ function Payment() {
 
             {remainingAmountForDisplay > 0 && (
               <div className="flex justify-between items-center text-xl font-bold text-red-700 border-t border-gray-200 pt-3">
-                <p>Sisa Pelunasan:</p>
+                <p>Sisa Pelunasan Asli:</p>
                 <p>{formatCurrency(remainingAmountForDisplay)}</p>
               </div>
             )}
 
-            {paymentType === 'fullpayment' && totalPaidDPForDisplay === 0 && (
+            {payment?.fine_amount > 0 && (
+              <>
+                <div className="flex justify-between items-center text-red-600 border-t border-gray-200 pt-3">
+                  <p>Denda ({payment.overdue_days} hari):</p>
+                  <p className="font-semibold">{formatCurrency(payment.fine_amount)}</p>
+                </div>
+                <div className="flex justify-between items-center text-xl font-extrabold text-red-800 border-t-2 border-red-300 pt-4 mt-4">
+                  <p>Total yang harus dibayar:</p>
+                  <p>{formatCurrency(payment.total_amount_due)}</p>
+                </div>
+              </>
+            )}
+
+            {payment?.payment_type === 'fullpayment' && payment?.fine_amount === 0 && !isOrderFullyPaid && (
               <div className="flex justify-between items-center text-xl font-bold text-blue-700 border-t border-gray-200 pt-3">
-                <p>Total Pembayaran Penuh:</p>
+                <p>Jumlah Pembayaran Penuh:</p>
                 <p>{formatCurrency(order.total_price)}</p>
               </div>
             )}
 
-            {paymentType === 'downpayment' && totalPaidDPForDisplay === 0 && (
+            {payment?.payment_type === 'downpayment' && payment?.fine_amount === 0 && !isOrderFullyPaid && (
               <div className="flex justify-between items-center text-xl font-bold text-blue-700 border-t border-gray-200 pt-3">
                 <p>Jumlah DP (20%):</p>
                 <p>{formatCurrency(Math.ceil(order.total_price * 0.2))}</p>

@@ -1,33 +1,33 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Logo from '../assets/images/logo.png';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import API_BASE_URL from '../api';
 
 function Invoice() {
   const navigate = useNavigate();
   const [invoiceData, setInvoiceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const admintoken = localStorage.getItem('adminToken'); 
   const invoiceRef = useRef(null);
 
   const statusLabels = {
     unpaid: 'Belum Dibayar',
-    pending: 'Menunggu', 
+    pending: 'Menunggu',
     pending_dp: 'Menunggu Pembayaran DP',
     dp_paid: 'DP Terbayar',
     pending_fullpayment: 'Menunggu Pelunasan',
     fullpayment_paid: 'Lunas',
     pending_verification: 'Menunggu Verifikasi',
     completed: 'Selesai',
-    failed: 'Gagal', 
+    failed: 'Gagal',
     processing: 'Diproduksi',
     ready: 'Siap Diambil',
     shipped: 'Diantar',
     delivered: 'Diterima',
     picked_up: 'Diambil',
-    cancel: 'Batal',
+    cancel: 'Dibatalkan',
   };
 
   const deliveryMethodLabels = {
@@ -46,9 +46,9 @@ function Invoice() {
       case PaymentType.SETTLEMENT:
         return 'Pelunasan DP';
       case PaymentType.DOWNPAYMENT:
-        return 'Bayar DP';
+        return 'Pembayaran DP';
       case PaymentType.FULLPAYMENT:
-        return 'Lunas';
+        return 'Pelunasan Penuh';
       default:
         return 'Tipe Pembayaran Lainnya';
     }
@@ -87,8 +87,9 @@ function Invoice() {
   };
 
   useEffect(() => {
-    if (!admintoken) {
-      navigate('/');
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      navigate('/login');
       return;
     }
 
@@ -102,14 +103,17 @@ function Invoice() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`https://bbn-web-production.up.railway.app/api/admin/payment/by-id?payment_id=${paymentId}`, {
+        const res = await fetch(`${API_BASE_URL}/admin/order/by-id?payment_id=${paymentId}`, {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${admintoken}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
         if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            navigate('/login');
+          }
           const text = await res.text();
           throw new Error(`HTTP ${res.status}: ${text}`);
         }
@@ -117,20 +121,20 @@ function Invoice() {
         const data = await res.json();
         setInvoiceData(data);
       } catch (err) {
-        setError('Gagal ambil data invoice: ' + err.message);
+        setError('Gagal mengambil data invoice: ' + err.message);
       } finally {
         setLoading(false);
       }
     };
 
     fetchInvoice();
-  }, [paymentId, admintoken, navigate]);
+  }, [paymentId, navigate]);
 
   const handleGeneratePdf = async () => {
     if (!invoiceRef.current) return;
 
-    const printButton = document.getElementById('print-pdf-button');
-    const backButton = document.getElementById('back-payment-button');
+    const printButton = document.getElementById('print-pdf-button-user');
+    const backButton = document.getElementById('back-to-orders-button-user');
 
     if (printButton) printButton.style.display = 'none';
     if (backButton) backButton.style.display = 'none';
@@ -207,7 +211,7 @@ function Invoice() {
   if (loading)
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <p className="text-lg text-gray-700">Memuat invoice...</p>
+        <p className="text-lg text-gray-700">Memuat invoice Anda...</p>
       </div>
     );
   if (error)
@@ -217,20 +221,25 @@ function Invoice() {
       </div>
     );
 
-  if (!invoiceData || !invoiceData.payment || !invoiceData.user || !invoiceData.delivery || !invoiceData.items) {
+  if (!invoiceData || !invoiceData.payment || !invoiceData.user || !invoiceData.delivery || !invoiceData.items || !invoiceData.order) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <p className="text-lg text-red-600">Data invoice tidak lengkap. Mohon periksa respons API.</p>
+        <p className="text-lg text-red-600">Data invoice tidak lengkap. Mohon hubungi admin jika masalah berlanjut.</p>
       </div>
     );
   }
-  const { payment, user, delivery, items } = invoiceData;
+  const { payment, user, delivery, items, order } = invoiceData;
 
   const grandTotalFromItems = items.reduce((sum, item) => sum + parseFloat(item.subtotal || 0), 0);
 
+  const discountAmount = order.total_price && order.discounted_total_price
+    ? parseFloat(order.total_price) - parseFloat(order.discounted_total_price)
+    : 0;
+
   const calculateBalanceStatus = () => {
     const currentPaymentAmount = parseFloat(payment.amount || 0);
-    const remainingAfterThisPayment = grandTotalFromItems - currentPaymentAmount;
+    const effectiveTotal = parseFloat(order.discounted_total_price || order.total_price || 0);
+    const remainingAfterThisPayment = effectiveTotal - currentPaymentAmount;
 
     if (remainingAfterThisPayment < 0) {
       return (
@@ -250,7 +259,7 @@ function Invoice() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4 sm:p-8">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-8">
       <div className="w-full max-w-4xl bg-white border border-gray-200 shadow-lg rounded-lg overflow-hidden my-4">
         <div ref={invoiceRef} className="invoice-content p-6 sm:p-8 md:p-10">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-6 mb-6 border-gray-200">
@@ -275,7 +284,6 @@ function Invoice() {
               </p>
             </div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8 mb-8">
             <div>
               <h3 className="font-bold text-lg text-gray-800 mb-3">Informasi Pelanggan</h3>
@@ -286,7 +294,7 @@ function Invoice() {
                 <span className="font-semibold">Email:</span> {user?.email || '-'}
               </p>
               <p className="text-gray-700">
-                <span className="font-semibold">Telepon:</span> {payment?.phone || user?.phone_number || '-'}
+                <span className="font-semibold">Telepon:</span> {user?.phone || '-'}
               </p>
             </div>
 
@@ -297,7 +305,7 @@ function Invoice() {
               </p>
               <p className="text-gray-700">
                 <span className="font-semibold">Tanggal Order:</span>{' '}
-                {payment?.order_date ? formatDate(payment.order_date) : '-'}
+                {order?.order_date ? formatDate(order.order_date) : '-'}
               </p>
               <p className="text-gray-700">
                 <span className="font-semibold">Metode Pembayaran:</span>{' '}
@@ -309,7 +317,6 @@ function Invoice() {
               </p>
             </div>
           </div>
-
           {delivery && (
             <div className="mb-8">
               <h3 className="font-bold text-lg text-gray-800 mb-3">Detail Pengiriman</h3>
@@ -322,7 +329,6 @@ function Invoice() {
               </p>
             </div>
           )}
-
           <div className="overflow-x-auto mb-8 border border-gray-200 rounded-lg">
             <table className="w-full table-auto text-left">
               <thead className="bg-gray-50">
@@ -366,6 +372,24 @@ function Invoice() {
                     Rp{grandTotalFromItems.toLocaleString('id-ID')}
                   </td>
                 </tr>
+                {discountAmount > 0 && (
+                  <tr className="bg-gray-50">
+                    <td colSpan="3" className="px-4 py-3 text-right font-semibold text-gray-800">
+                      Diskon ({order.applied_reward_details?.code || 'Diskon'} {order.applied_reward_details?.discount_percentage ? `(${order.applied_reward_details.discount_percentage}%)` : ''}):
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-green-600">
+                       Rp{discountAmount.toLocaleString('id-ID')}
+                    </td>
+                  </tr>
+                )}
+                <tr className="bg-gray-50">
+                  <td colSpan="3" className="px-4 py-3 text-right font-semibold text-gray-800">
+                    Total Setelah Diskon:
+                  </td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-900">
+                    Rp{Number(order.discounted_total_price || grandTotalFromItems).toLocaleString('id-ID')}
+                  </td>
+                </tr>
                 <tr className="bg-gray-50">
                   <td colSpan="3" className="px-4 py-3 text-right font-semibold text-gray-800">
                     Jumlah Pembayaran Ini ({formatPaymentType(payment?.payment_type) || '-'}):
@@ -392,29 +416,22 @@ function Invoice() {
             </p>
             {payment?.proof_of_payment ? (
               <div className="mt-4 proof-wrapper">
-                <p className="proof-text text-sm text-gray-600 mb-2">Bukti Pembayaran:</p>
+                <p className="proof-text text-sm text-gray-600 mb-2">Bukti Pembayaran Anda:</p>
                 <img
-                  src={payment.proof_of_payment}
+                  src="${payment.proof_of_payment}"
                   alt="Bukti Pembayaran"
                   className="proof-image w-full max-w-sm h-auto object-contain border border-gray-300 rounded-md shadow-sm"
                 />
               </div>
             ) : (
-              <p className="text-gray-600 text-sm italic">Belum ada bukti pembayaran diunggah.</p>
+              <p className="text-gray-600 text-sm italic">Belum ada bukti pembayaran diunggah untuk transaksi ini.</p>
             )}
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row justify-end gap-3 p-6 bg-gray-50 border-t border-gray-200">
           <button
-            id="back-payment-button"
-            onClick={() => navigate('/payment')}
-            className="px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200 ease-in-out font-semibold shadow-sm w-full sm:w-auto"
-          >
-            Kembali ke Data Pembayaran
-          </button>
-          <button
-            id="print-pdf-button"
+            id="print-pdf-button-user"
             onClick={handleGeneratePdf}
             className="px-6 py-3 bg-blue-700 text-white rounded-md hover:bg-blue-800 transition duration-200 ease-in-out font-semibold shadow-sm w-full sm:w-auto"
           >

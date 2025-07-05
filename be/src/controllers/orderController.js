@@ -1,27 +1,27 @@
 const db = require('../config/db');
 
 function getJakartaDateTime() {
-  const now = new Date();
-  const options = {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Jakarta'
-  };
+    const now = new Date();
+    const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Jakarta'
+    };
 
-  const jakartaTimeString = new Intl.DateTimeFormat('en-CA', options).format(now);
+    const jakartaTimeString = new Intl.DateTimeFormat('en-CA', options).format(now);
 
-  return jakartaTimeString.replace(/(\d{4})-(\d{2})-(\d{2}),? (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3 $4:$5:$6');
+    return jakartaTimeString.replace(/(\d{4})-(\d{2})-(\d{2}),? (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3 $4:$5:$6');
 }
 
 const checkout = async (req, res) => {
     let conn;
     try {
-        const { delivery_method, location, cart, payment_type, amount, message } = req.body;
+        const { delivery_method, location, cart, payment_type, amount, message, applied_reward_id } = req.body;
         const user_id = req.user.id;
 
         if (!cart || !Array.isArray(cart) || cart.length === 0) {
@@ -36,23 +36,65 @@ const checkout = async (req, res) => {
             return res.status(400).json({ error: 'Payment type tidak valid' });
         }
 
-        const total_price = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
-
-        if (paymentTypeLower === 'downpayment' && amount < total_price * 0.2) {
-            return res.status(400).json({ error: `DP minimal 20% dari total harga (${(total_price * 0.2).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })})` });
-        }
-        if (paymentTypeLower === 'fullpayment' && amount < total_price) {
-            return res.status(400).json({ error: 'Fullpayment harus sama atau lebih dari total harga' });
-        }
+        let discounted_total_price = 0;
+        let reward_data = null;
+        let original_total_price = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
 
         conn = await db.getConnection();
         await conn.beginTransaction();
 
+        if (applied_reward_id) {
+            const [rewards] = await conn.execute(
+                `SELECT * FROM reward WHERE reward_id = ? AND user_id = ? FOR UPDATE`,
+                [applied_reward_id, user_id]
+            );
+            reward_data = rewards[0];
+
+            if (!reward_data) {
+                await conn.rollback();
+                return res.status(404).json({ error: 'Reward tidak ditemukan atau bukan milik Anda.' });
+            }
+            if (reward_data.is_used) {
+                await conn.rollback();
+                return res.status(400).json({ error: 'Reward ini sudah digunakan.' });
+            }
+            const expiryDate = new Date(reward_data.expiry_date);
+            const currentDate = new Date();
+            if (currentDate > expiryDate) {
+                await conn.rollback();
+                return res.status(400).json({ error: 'Reward ini sudah kadaluarsa.' });
+            }
+            if (reward_data.min_purchase_amount && original_total_price < reward_data.min_purchase_amount) {
+                await conn.rollback();
+                return res.status(400).json({
+                    error: `Minimum pembelian untuk reward ini adalah Rp${reward_data.min_purchase_amount.toLocaleString('id-ID')}.`
+                });
+            }
+
+            discounted_total_price = original_total_price * (1 - reward_data.discount_percentage / 100);
+            discounted_total_price = Math.max(0, discounted_total_price);
+        } else {
+            discounted_total_price = original_total_price;
+        }
+
+        if (paymentTypeLower === 'downpayment' && amount < discounted_total_price * 0.2) {
+            await conn.rollback();
+            return res.status(400).json({ error: `DP minimal 20% dari total harga (${(discounted_total_price * 0.2).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })})` });
+        }
+        if (paymentTypeLower === 'fullpayment' && amount < discounted_total_price) {
+            await conn.rollback();
+            return res.status(400).json({ error: 'Fullpayment harus sama atau lebih dari total harga' });
+        }
+
+        if (paymentTypeLower === 'fullpayment' && amount > discounted_total_price) {
+            return res.status(400).json({ error: 'Jumlah pembayaran penuh tidak boleh melebihi total harga setelah diskon.' });
+        }
+
         const orderDateTime = getJakartaDateTime();
         const [orderResult] = await conn.execute(
-            `INSERT INTO \`order\` (user_id, order_date, status, total_price, delivery_method, location)
-            VALUES (?, ?, 'unpaid', ?, ?, ?)`,
-            [user_id, orderDateTime, total_price, delivery_method, location]
+            `INSERT INTO \`order\` (user_id, order_date, status, total_price, discounted_total_price, delivery_method, location, applied_reward_id)
+            VALUES (?, ?, 'unpaid', ?, ?, ?, ?, ?)`,
+            [user_id, orderDateTime, original_total_price, discounted_total_price, delivery_method, location, applied_reward_id || null]
         );
         const order_id = orderResult.insertId;
 
@@ -69,11 +111,18 @@ const checkout = async (req, res) => {
 
         const [paymentResult] = await conn.execute(
             `INSERT INTO payment (order_id, user_id, amount, payment_type, status, message)
-            VALUES (?, ?, ?, ?, ?, ?)`, 
+            VALUES (?, ?, ?, ?, ?, ?)`,
             [order_id, user_id, amount, paymentTypeLower, initialPaymentStatus, message || '']
         );
 
         const payment_id = paymentResult.insertId;
+
+        if (applied_reward_id && reward_data) {
+            await conn.execute(
+                `UPDATE reward SET is_used = 1, used_at = ? WHERE reward_id = ?`,
+                [getJakartaDateTime(), applied_reward_id]
+            );
+        }
 
         await conn.commit();
         res.status(201).json({ message: 'Checkout berhasil. Silakan upload bukti pembayaran.', order_id, payment_id });
@@ -90,7 +139,7 @@ const getOrderDetailByPaymentId = async (req, res) => {
     let conn;
     try {
         const tokenUserId = req.user?.id;
-        const paymentId = req.params.paymentId;
+        const paymentId = req.query.payment_id; 
 
         if (!tokenUserId) {
             return res.status(401).json({ message: 'User tidak terautentikasi' });
@@ -101,8 +150,9 @@ const getOrderDetailByPaymentId = async (req, res) => {
         }
 
         conn = await db.getConnection();
-        const [payments] = await conn.execute( 
-            `SELECT payment_id, order_id, user_id, payment_type, status, amount, payment_method, proof_of_payment, message
+
+        const [payments] = await conn.execute(
+            `SELECT payment_id, order_id, user_id, payment_type, status, amount, payment_method, proof_of_payment, message, created_at
             FROM payment
             WHERE payment_id = ?`,
             [paymentId]
@@ -117,25 +167,46 @@ const getOrderDetailByPaymentId = async (req, res) => {
         const orderId = payment.order_id;
         const paymentUserId = payment.user_id;
 
+        // 2. Ambil detail order
         const [orders] = await conn.execute(
-            `SELECT o.order_id, o.user_id, o.delivery_method, o.location, o.total_price,
-                    o.status, o.order_date, o.file_delivery_order, u.shop_name, o.estimated_date
+            `SELECT o.order_id, o.user_id, o.delivery_method, o.location, o.total_price, o.discounted_total_price,
+                    o.status, o.order_date, o.file_delivery_order, o.estimated_date, o.applied_reward_id
             FROM \`order\` o
-            JOIN user u ON o.user_id = u.user_id
             WHERE o.order_id = ? AND o.user_id = ?`,
-            [orderId, paymentUserId]
+            [orderId, paymentUserId] 
         );
 
         if (!orders.length) {
             conn.release();
-            return res.status(404).json({ message: 'Order tidak ditemukan' });
+            return res.status(404).json({ message: 'Order tidak ditemukan untuk user ini' });
         }
 
         const order = orders[0];
 
+        const [users] = await conn.execute(
+            `SELECT user_id, shop_name, email, phone FROM user WHERE user_id = ?`,
+            [paymentUserId]
+        );
+        const user = users.length ? users[0] : null;
+
+        if (!user) {
+            console.warn(`User with ID ${paymentUserId} not found for payment ${paymentId}. Proceeding with null user data.`);
+        }
+        
+        let appliedRewardDetails = null;
+        if (order.applied_reward_id) {
+            const [rewardDetails] = await conn.execute(
+                `SELECT reward_id, code, discount_percentage, min_purchase_amount FROM reward WHERE reward_id = ?`,
+                [order.applied_reward_id]
+            );
+            if (rewardDetails.length > 0) {
+                appliedRewardDetails = rewardDetails[0];
+            }
+        }
+
         const [items] = await conn.execute(
             `SELECT oi.order_item_id, oi.quantity, oi.subtotal,
-                    p.product_name, p.type, p.thick, p.avg_weight_per_stick
+                    p.product_name, p.type, p.thick, p.avg_weight_per_stick, p.unit_price
             FROM order_item oi
             JOIN product p ON oi.product_id = p.product_id
             WHERE oi.order_id = ?`,
@@ -152,13 +223,25 @@ const getOrderDetailByPaymentId = async (req, res) => {
 
         conn.release();
 
+        const delivery = {
+            location: order.location,
+            delivery_method: order.delivery_method,
+        };
+
         return res.json({
+            payment: {
+                ...payment,
+                phone: payment.payment_phone,
+                name: payment.payment_name,
+            },
             order: {
                 ...order,
                 amount_for_this_payment: payment.amount,
+                applied_reward_details: appliedRewardDetails,
             },
+            user,
+            delivery,
             items,
-            payment,
             payments: allPaymentsForOrder,
         });
 
@@ -175,14 +258,15 @@ const getAllOrders = async (req, res) => {
         conn = await db.getConnection();
         const [orders] = await conn.execute(
             `SELECT o.*, u.shop_name
-            FROM \`order\` o
-            JOIN \`user\` u ON o.user_id = u.user_id
+            FROM \`order\` o  -- <-- Pastikan ada backticks di sini
+            JOIN user u ON o.user_id = u.user_id
             ORDER BY o.order_date DESC`
         );
 
         const orderIds = orders.map(o => o.order_id);
         let items = [];
         let payments = [];
+        let rewards = [];
 
         if (orderIds.length) {
             const [itemResults] = await conn.query(
@@ -202,12 +286,22 @@ const getAllOrders = async (req, res) => {
                 [orderIds]
             );
             payments = paymentResults;
+
+            const appliedRewardIds = orders.map(o => o.applied_reward_id).filter(id => id !== null);
+            if (appliedRewardIds.length > 0) {
+                const [rewardResults] = await conn.query(
+                    `SELECT reward_id, code, discount_percentage, min_purchase_amount FROM reward WHERE reward_id IN (?)`,
+                    [appliedRewardIds]
+                );
+                rewards = rewardResults;
+            }
         }
 
         const orderWithDetails = orders.map(order => ({
             ...order,
             items: items.filter(i => i.order_id === order.order_id),
-            payments: payments.filter(p => p.order_id === order.order_id)
+            payments: payments.filter(p => p.order_id === order.order_id),
+            applied_reward_details: rewards.find(r => r.reward_id === order.applied_reward_id) || null
         }));
 
         res.json(orderWithDetails);
@@ -215,7 +309,7 @@ const getAllOrders = async (req, res) => {
         console.error('Error in getAllOrders:', error);
         res.status(500).json({ error: 'Gagal mengambil data order' });
     } finally {
-        if (conn) conn.release(); 
+        if (conn) conn.release();
     }
 };
 
@@ -544,7 +638,7 @@ const confirmDelivery = async (req, res) => {
 
 const uploadDOFile = async (req, res) => {
     const { orderId } = req.params;
-    const doFileUrl = req.file?.path;
+    const doFileUrl = req.file?.filename;
 
     if (!doFileUrl) {
         return res.status(400).json({ message: 'No file uploaded' });

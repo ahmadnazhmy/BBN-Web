@@ -8,6 +8,7 @@ import { id } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LogoImage from '../assets/images/logo2.png';
+import API_BASE_URL from '../api';
 
 export default function Order() {
     const [orders, setOrders] = useState([]);
@@ -20,7 +21,7 @@ export default function Order() {
     const [filterMonthYear, setFilterMonthYear] = useState(null);
     const [selectedFiles, setSelectedFiles] = useState({});
     const [showModalContent, setShowModalContent] = useState(false);
-    const backendURL = 'https://bbn-web-production.up.railway.app';
+    const [filterPaymentStatus, setFilterPaymentStatus] = useState('all'); 
 
     const statusLabels = {
         unpaid: 'Belum Dibayar',
@@ -31,6 +32,7 @@ export default function Order() {
         delivered: 'Diterima',
         picked_up: 'Diambil',
         cancel: 'Batal',
+        expired: 'Kedaluwarsa',
     };
 
     const showNotification = useCallback((msg, type = 'success', duration = 3000) => {
@@ -43,7 +45,7 @@ export default function Order() {
     const fetchOrders = async () => {
         try {
             const token = localStorage.getItem('adminToken');
-            const res = await fetch(`${backendURL}/api/admin/orders`, {
+            const res = await fetch(`${API_BASE_URL}/admin/orders`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (!res.ok) throw new Error('Gagal mengambil data order');
@@ -83,8 +85,17 @@ export default function Order() {
             });
         }
 
+        // Apply payment status filter
+        if (filterPaymentStatus !== 'all') {
+            result = result.filter(o => {
+                const status = getPaymentStatus(o);
+                return (filterPaymentStatus === 'paid' && status === 'Lunas') ||
+                       (filterPaymentStatus === 'unpaid' && status === 'Belum Lunas');
+            });
+        }
+
         setFilteredOrders(result);
-    }, [orders, filterMethod, filterMonthYear]);
+    }, [orders, filterMethod, filterMonthYear, filterPaymentStatus]); // Add filterPaymentStatus to dependencies
 
     const getPaymentStatus = (order) => {
         const payments = order.payments || [];
@@ -230,7 +241,7 @@ export default function Order() {
                 throw new Error('No admin token found. Please log in.');
             }
 
-            const res = await fetch(`${backendURL}/api/admin/orders/${orderId}/status`, {
+            const res = await fetch(`${API_BASE_URL}/admin/orders/${orderId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -269,7 +280,7 @@ export default function Order() {
         formData.append('doFile', file);
 
         try {
-            const res = await fetch(`${backendURL}/api/admin/orders/${orderId}/upload-do`, {
+            const res = await fetch(`${API_BASE_URL}/admin/orders/${orderId}/upload-do`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -294,7 +305,7 @@ export default function Order() {
     const handleEstimateChange = async (orderId, newEstimate) => {
         const token = localStorage.getItem('adminToken');
         try {
-            const res = await fetch(`${backendURL}/api/orders/${orderId}/estimated-date`, {
+            const res = await fetch(`${API_BASE_URL}/orders/${orderId}/estimated-date`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -313,7 +324,7 @@ export default function Order() {
         }
     };
 
-     const openModal = order => {
+      const openModal = order => {
         setSelectedOrder(order);
         setTimeout(() => {
             setShowModalContent(true);
@@ -364,9 +375,18 @@ export default function Order() {
                             <option value="delivery">Antar</option>
                             <option value="pickup">Ambil</option>
                         </select>
+                        <select
+                            value={filterPaymentStatus}
+                            onChange={e => setFilterPaymentStatus(e.target.value)}
+                            className="bg-white border border-gray-300 text-sm px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="all">Semua Status Pembayaran</option>
+                            <option value="paid">Lunas</option>
+                            <option value="unpaid">Belum Lunas</option>
+                        </select>
                         <button
                             onClick={handleExportPDF}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md transition-colors shadow"
+                            className="w-40 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md transition-colors shadow"
                         >
                             <FontAwesomeIcon icon={faFile} className="mr-2" /> Ekspor PDF
                         </button>
@@ -458,8 +478,8 @@ export default function Order() {
                                                         value={order.status}
                                                         onChange={handleStatusChangeInRow}
                                                         className={`bg-white border border-gray-300 rounded-md px-2 py-1 pr-8 text-xs appearance-none w-full
-                                                            ${isStatusFinal ? 'bg-gray-200 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
-                                                        disabled={isStatusFinal}
+                                                            ${isStatusFinal || order.status === 'expired' ? 'bg-gray-200 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
+                                                        disabled={isStatusFinal || order.status === 'expired'} // Tambahkan 'expired' di sini
                                                     >
                                                         {isDelivery ? (
                                                             <>
@@ -469,15 +489,17 @@ export default function Order() {
                                                                 <option value="shipped">{statusLabels.shipped}</option>
                                                                 <option value="delivered">{statusLabels.delivered}</option>
                                                                 <option value="cancel">{statusLabels.cancel}</option>
+                                                                <option value="expired">{statusLabels.expired}</option> {/* Tambahkan ini */}
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <option value="unpaid">{statusLabels.unpaid}</option>
-                                                                <option value="pending_dp">Menunggu DP</option> 
+                                                                <option value="pending_dp">Menunggu DP</option>
                                                                 <option value="processing">{statusLabels.processing}</option>
                                                                 <option value="ready">{statusLabels.ready}</option>
                                                                 <option value="picked_up">{statusLabels.picked_up}</option>
                                                                 <option value="cancel">{statusLabels.cancel}</option>
+                                                                <option value="expired">{statusLabels.expired}</option> {/* Tambahkan ini */}
                                                             </>
                                                         )}
                                                     </select>
