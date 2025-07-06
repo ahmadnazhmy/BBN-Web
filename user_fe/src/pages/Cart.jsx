@@ -8,7 +8,7 @@ import API_BASE_URL from '../api';
 const Cart = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const userId = localStorage.getItem('user_id'); 
+    const userId = localStorage.getItem('user_id');
     const cartKey = `cart_${userId}`;
 
     const [cartItems, setCartItems] = useState([]);
@@ -353,7 +353,7 @@ Total bayar: Rp${paymentType === 'downpayment' ? calculateDownPayment().toLocale
                                     {discountError && <p className="text-red-500 text-sm mt-2">{discountError}</p>}
                                     {appliedDiscount && (
                                         <p className="text-green-600 text-sm mt-2">
-                                            Diskon {appliedDiscount.discount_percentage}% ({appliedDiscount.code}) berhasil diterapkan!
+                                            Diskon {appliedDiscount.discount_percentage}% ({appliedDiscount.code}) diterapkan: - Rp{discountAmount.toLocaleString('id-ID')}
                                         </p>
                                     )}
                                 </div>

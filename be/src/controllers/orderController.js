@@ -17,160 +17,171 @@ function getJakartaDateTime() {
 }
 
 const checkout = async (req, res) => {
-  let conn;
-  try {
-    const { delivery_method, location, cart, payment_type, amount, message, applied_reward_id } = req.body;
-    const user_id = req.user?.id;
-
-    console.log('[DEBUG] Checkout payload:', {
-      user_id,
-      delivery_method,
-      location,
-      cart,
-      payment_type,
-      amount,
-      applied_reward_id
-    });
-
-    if (!cart || !Array.isArray(cart) || cart.length === 0) {
-      return res.status(400).json({ error: 'Keranjang kosong' });
-    }
-
-    if (!delivery_method || !location) {
-      return res.status(400).json({ error: 'Delivery method dan lokasi wajib diisi' });
-    }
-
-    const paymentTypeLower = payment_type?.toLowerCase();
-    if (!['fullpayment', 'downpayment'].includes(paymentTypeLower)) {
-      return res.status(400).json({ error: 'Payment type tidak valid' });
-    }
-
-    let discounted_total_price = 0;
-    let reward_data = null;
-    const original_total_price = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
-
-    conn = await db.getConnection();
-    await conn.beginTransaction();
-
-    if (applied_reward_id != null) {
+    let conn;
     try {
-        const [rewards] = await conn.execute(
-        `SELECT * FROM reward WHERE reward_id = ? AND user_id = ? FOR UPDATE`,
-        [applied_reward_id, user_id]
+        const { delivery_method, location, cart, payment_type, amount, message, applied_reward_id } = req.body;
+        const userId = req.user?.id;
+
+        console.log('[DEBUG] Checkout payload:', {
+            user_id: userId,
+            delivery_method,
+            location,
+            cart,
+            payment_type,
+            amount,
+            applied_reward_id
+        });
+
+        if (!cart || !Array.isArray(cart) || cart.length === 0) {
+            return res.status(400).json({ error: 'Keranjang kosong' });
+        }
+
+        if (!delivery_method || !location) {
+            return res.status(400).json({ error: 'Delivery method dan lokasi wajib diisi' });
+        }
+
+        const paymentTypeLower = payment_type?.toLowerCase();
+        if (!['fullpayment', 'downpayment'].includes(paymentTypeLower)) {
+            return res.status(400).json({ error: 'Payment type tidak valid' });
+        }
+
+        let discounted_total_price = 0;
+        let reward_data = null;
+        const original_total_price = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+
+        conn = await db.getConnection();
+        await conn.beginTransaction();
+
+        if (applied_reward_id != null) {
+            try {
+                const [rows] = await conn.execute(
+                    `SELECT * FROM reward WHERE reward_id = ? AND user_id = ? FOR UPDATE`,
+                    [applied_reward_id, userId]
+                );
+
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    await conn.rollback();
+                    return res.status(404).json({ error: 'Reward tidak ditemukan atau bukan milik Anda.' });
+                }
+
+                reward_data = rows[0];
+
+                if (reward_data.is_used) {
+                    await conn.rollback();
+                    return res.status(400).json({ error: 'Reward ini sudah digunakan.' });
+                }
+
+                const expiryDate = new Date(reward_data.expiry_date);
+                const currentDate = new Date();
+                if (currentDate > expiryDate) {
+                    await conn.rollback();
+                    return res.status(400).json({ error: 'Reward ini sudah kadaluarsa.' });
+                }
+
+                if (
+                    reward_data.min_purchase_amount &&
+                    original_total_price < reward_data.min_purchase_amount
+                ) {
+                    await conn.rollback();
+                    return res.status(400).json({
+                        error: `Minimum pembelian untuk reward ini adalah Rp${reward_data.min_purchase_amount.toLocaleString('id-ID')}.`,
+                    });
+                }
+
+                discounted_total_price = original_total_price * (1 - reward_data.discount_percentage / 100);
+                discounted_total_price = Math.max(0, discounted_total_price);
+            } catch (queryError) {
+                console.error('[ERROR] Query reward gagal:', queryError);
+                if (conn) {
+                    try {
+                        await conn.rollback();
+                    } catch (rbError) {
+                        console.error('[FATAL] Rollback after query error failed:', rbError.message);
+                    }
+                }
+                return res.status(500).json({ error: 'Gagal memproses data reward' });
+            }
+        } else {
+            discounted_total_price = original_total_price;
+        }
+
+        if (paymentTypeLower === 'downpayment' && amount < discounted_total_price * 0.2) {
+            await conn.rollback();
+            return res.status(400).json({
+                error: `DP minimal 20% dari total harga (${(discounted_total_price * 0.2).toLocaleString('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR'
+                })})`
+            });
+        }
+
+        if (paymentTypeLower === 'fullpayment' && amount < discounted_total_price) {
+            await conn.rollback();
+            return res.status(400).json({ error: 'Fullpayment harus sama atau lebih dari total harga' });
+        }
+
+        if (paymentTypeLower === 'fullpayment' && amount > discounted_total_price) {
+            await conn.rollback();
+            return res.status(400).json({ error: 'Jumlah pembayaran penuh tidak boleh melebihi total harga setelah diskon.' });
+        }
+
+        const orderDateTime = getJakartaDateTime();
+
+        const [orderResult] = await conn.execute(
+            `INSERT INTO \`order\` (user_id, order_date, status, total_price, discounted_total_price, delivery_method, location, applied_reward_id)
+             VALUES (?, ?, 'unpaid', ?, ?, ?, ?, ?)`,
+            [userId, orderDateTime, original_total_price, discounted_total_price, delivery_method, location, applied_reward_id || null]
         );
 
-        if (!Array.isArray(rewards) || rewards.length === 0) {
-        await conn.rollback();
-        return res.status(404).json({ error: 'Reward tidak ditemukan atau bukan milik Anda.' });
+        const order_id = orderResult.insertId;
+
+        for (const item of cart) {
+            const subtotal = item.unit_price * item.quantity;
+            await conn.execute(
+                `INSERT INTO order_item (order_id, product_id, quantity, subtotal)
+                 VALUES (?, ?, ?, ?)`,
+                [order_id, item.product_id, item.quantity, subtotal]
+            );
         }
 
-        reward_data = rewards[0];
+        const initialPaymentStatus = paymentTypeLower === 'downpayment' ? 'pending_dp' : 'pending_fullpayment';
 
-        if (reward_data.is_used) {
-        await conn.rollback();
-        return res.status(400).json({ error: 'Reward ini sudah digunakan.' });
+        const [paymentResult] = await conn.execute(
+            `INSERT INTO payment (order_id, user_id, amount, payment_type, status, message, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [order_id, userId, amount, paymentTypeLower, initialPaymentStatus, message || '', orderDateTime]
+        );
+
+        const payment_id = paymentResult.insertId;
+
+        if (applied_reward_id && reward_data) {
+            await conn.execute(
+                `UPDATE reward SET is_used = 1, used_at = ? WHERE reward_id = ?`,
+                [orderDateTime, applied_reward_id]
+            );
         }
 
-        const expiryDate = new Date(reward_data.expiry_date);
-        const currentDate = new Date();
-        if (currentDate > expiryDate) {
-        await conn.rollback();
-        return res.status(400).json({ error: 'Reward ini sudah kadaluarsa.' });
-        }
+        await conn.commit();
 
-        if (
-        reward_data.min_purchase_amount &&
-        original_total_price < reward_data.min_purchase_amount
-        ) {
-        await conn.rollback();
-        return res.status(400).json({
-            error: `Minimum pembelian untuk reward ini adalah Rp${reward_data.min_purchase_amount.toLocaleString('id-ID')}.`,
+        res.status(201).json({
+            message: 'Checkout berhasil. Silakan upload bukti pembayaran.',
+            order_id,
+            payment_id
         });
+
+    } catch (error) {
+        console.error('[FATAL] Checkout error:', error);
+        if (conn) {
+            try {
+                await conn.rollback();
+            } catch (rollbackError) {
+                console.error('[FATAL] Rollback gagal:', rollbackError.message);
+            }
         }
-
-        discounted_total_price = original_total_price * (1 - reward_data.discount_percentage / 100);
-        discounted_total_price = Math.max(0, discounted_total_price);
-    } catch (queryError) {
-        console.error('[ERROR] Query reward gagal:', queryError);
-        await conn.rollback();
-        return res.status(500).json({ error: 'Gagal memproses data reward' });
+        res.status(500).json({ error: 'Gagal melakukan checkout' });
+    } finally {
+        if (conn) conn.release();
     }
-    } else {
-    discounted_total_price = original_total_price;
-    }
-
-    if (paymentTypeLower === 'downpayment' && amount < discounted_total_price * 0.2) {
-      await conn.rollback();
-      return res.status(400).json({
-        error: `DP minimal 20% dari total harga (${(discounted_total_price * 0.2).toLocaleString('id-ID', {
-          style: 'currency',
-          currency: 'IDR'
-        })})`
-      });
-    }
-
-    if (paymentTypeLower === 'fullpayment' && amount < discounted_total_price) {
-      await conn.rollback();
-      return res.status(400).json({ error: 'Fullpayment harus sama atau lebih dari total harga' });
-    }
-
-    if (paymentTypeLower === 'fullpayment' && amount > discounted_total_price) {
-      return res.status(400).json({ error: 'Jumlah pembayaran penuh tidak boleh melebihi total harga setelah diskon.' });
-    }
-
-    const orderDateTime = getJakartaDateTime();
-
-    const [orderResult] = await conn.execute(
-      `INSERT INTO \`order\` (user_id, order_date, status, total_price, discounted_total_price, delivery_method, location, applied_reward_id)
-       VALUES (?, ?, 'unpaid', ?, ?, ?, ?, ?)`,
-      [user_id, orderDateTime, original_total_price, discounted_total_price, delivery_method, location, applied_reward_id || null]
-    );
-
-    const order_id = orderResult.insertId;
-
-    for (const item of cart) {
-      const subtotal = item.unit_price * item.quantity;
-      await conn.execute(
-        `INSERT INTO order_item (order_id, product_id, quantity, subtotal)
-         VALUES (?, ?, ?, ?)`,
-        [order_id, item.product_id, item.quantity, subtotal]
-      );
-    }
-
-    const initialPaymentStatus = paymentTypeLower === 'downpayment' ? 'pending_dp' : 'pending_fullpayment';
-
-    const [paymentResult] = await conn.execute(
-      `INSERT INTO payment (order_id, user_id, amount, payment_type, status, message, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [order_id, user_id, amount, paymentTypeLower, initialPaymentStatus, message || '', orderDateTime]
-    );
-
-    const payment_id = paymentResult.insertId;
-
-    if (applied_reward_id && reward_data) {
-      await conn.execute(
-        `UPDATE reward SET is_used = 1, used_at = ? WHERE reward_id = ?`,
-        [orderDateTime, applied_reward_id]
-      );
-    }
-
-    await conn.commit();
-
-    res.status(201).json({ message: 'Checkout berhasil. Silakan upload bukti pembayaran.', order_id, payment_id });
-
-  } catch (error) {
-    console.error('[FATAL] Checkout error:', error);
-    if (conn) {
-      try {
-        await conn.rollback();
-      } catch (rollbackError) {
-        console.error('[FATAL] Rollback gagal:', rollbackError.message);
-      }
-    }
-    res.status(500).json({ error: 'Gagal melakukan checkout' });
-  } finally {
-    if (conn) conn.release();
-  }
 };
 
 const getOrderDetailByPaymentId = async (req, res) => {
