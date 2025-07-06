@@ -54,10 +54,7 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint tidak ditemukan' });
 });
 
-console.log('[INIT] Memulai cron cancelOverdueOrders() setiap menit');
-cron.schedule('*/1 * * * *', () => {
-  console.log('[CRON] Menjalankan cancelOverdueOrders...');
-  cancelOverdueOrders();
-});
+cron.schedule('*/1 * * * *', cancelOverdueOrders);
+cancelOverdueOrders();
 
 module.exports = app;

@@ -12,28 +12,29 @@ function getJakartaDateTime() {
     hour12: false,
     timeZone: 'Asia/Jakarta'
   };
-
   const jakartaTimeString = new Intl.DateTimeFormat('en-CA', options).format(now);
-
   return jakartaTimeString.replace(/(\d{4})-(\d{2})-(\d{2}),? (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3 $4:$5:$6');
 }
 
 async function cancelOverdueOrders() {
   let conn;
+  console.log('[CRON] Menjalankan cancelOverdueOrders...');
   try {
     conn = await db.getConnection();
     await conn.beginTransaction();
 
     const [overdueOrders] = await conn.execute(
-      `SELECT o.order_id, o.user_id
-        FROM \`order\` o
-        LEFT JOIN payment p ON o.order_id = p.order_id
-        WHERE o.status IN ('unpaid', 'pending', 'pending_dp', 'pending_fullpayment')
-        AND o.order_date <= (NOW() - INTERVAL 1 MINUTE)
-        AND p.payment_type IN ('downpayment', 'fullpayment')
-        AND p.status IN ('pending_dp', 'pending_fullpayment')
-        GROUP BY o.order_id, o.user_id`
+      `SELECT o.order_id, o.user_id, o.order_date
+       FROM \`order\` o
+       LEFT JOIN payment p ON o.order_id = p.order_id
+       WHERE o.status IN ('unpaid', 'pending', 'pending_dp', 'pending_fullpayment')
+       AND TIMESTAMPDIFF(MINUTE, o.order_date, UTC_TIMESTAMP()) >= 1
+       AND p.payment_type IN ('downpayment', 'fullpayment')
+       AND p.status IN ('pending_dp', 'pending_fullpayment')
+       GROUP BY o.order_id, o.user_id, o.order_date`
     );
+
+    console.log(`[CRON] Total order kadaluwarsa ditemukan: ${overdueOrders.length}`);
 
     if (overdueOrders.length === 0) {
       await conn.commit();
@@ -41,7 +42,9 @@ async function cancelOverdueOrders() {
     }
 
     for (const order of overdueOrders) {
-      const { order_id, user_id } = order;
+      const { order_id, user_id, order_date } = order;
+
+      console.log(`[CRON] Membatalkan order #${order_id} (dibuat: ${order_date})`);
 
       await conn.execute(
         `UPDATE \`order\` SET status = 'expired' WHERE order_id = ?`,
@@ -73,14 +76,13 @@ async function cancelOverdueOrders() {
       try {
         await conn.rollback();
       } catch (rollbackError) {
-        console.error('Rollback gagal:', rollbackError.message);
+        console.error('[CRON] Rollback gagal:', rollbackError.message);
       }
     }
-    console.error('Gagal membatalkan pesanan kadaluarsa:', error.message);
+    console.error('[CRON] Gagal membatalkan pesanan kadaluarsa:', error);
   } finally {
     if (conn) conn.release();
   }
 }
-
 
 module.exports = cancelOverdueOrders;
