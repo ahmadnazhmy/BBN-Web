@@ -28,7 +28,7 @@ async function cancelOverdueOrders() {
        FROM \`order\` o
        LEFT JOIN payment p ON o.order_id = p.order_id
        WHERE o.status IN ('unpaid', 'pending', 'pending_dp', 'pending_fullpayment')
-       AND TIMESTAMPDIFF(MINUTE, o.order_date, UTC_TIMESTAMP()) >= 1
+       AND TIMESTAMPDIFF(MINUTE, o.order_date, NOW()) >= 1
        AND p.payment_type IN ('downpayment', 'fullpayment')
        AND p.status IN ('pending_dp', 'pending_fullpayment')
        GROUP BY o.order_id, o.user_id, o.order_date`
