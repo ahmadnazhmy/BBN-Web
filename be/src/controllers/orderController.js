@@ -39,7 +39,7 @@ const checkout = async (req, res) => {
     let reward_data = null;
     let original_total_price = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
 
-    conn = await db.getConnection();
+    conn = await db.getConnection(); 
     await conn.beginTransaction();
 
     if (applied_reward_id) {
@@ -103,6 +103,7 @@ const checkout = async (req, res) => {
     }
 
     if (paymentTypeLower === 'fullpayment' && amount > discounted_total_price) {
+      await conn.rollback();
       return res.status(400).json({ error: 'Jumlah pembayaran penuh tidak boleh melebihi total harga setelah diskon.' });
     }
 
@@ -146,7 +147,8 @@ const checkout = async (req, res) => {
     res.status(201).json({ message: 'Checkout berhasil. Silakan upload bukti pembayaran.', order_id, payment_id });
   } catch (error) {
     console.error('Checkout error:', error);
-    if (conn && conn.rollback) {
+
+    if (conn) {
       try {
         await conn.rollback();
       } catch (rollbackError) {
@@ -155,6 +157,7 @@ const checkout = async (req, res) => {
     }
     res.status(500).json({ error: 'Gagal melakukan checkout' });
   } finally {
+    
     if (conn) conn.release();
   }
 };
