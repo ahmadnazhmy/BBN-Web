@@ -22,9 +22,9 @@ const banners = [
   },
   {
     image: BG4,
-    title: "Apresiasi Khusus untuk Toko Mitra Berprestasi!",
-    description: "Nikmati reward eksklusif sebagai bentuk penghargaan atas pencapaian target penjualan Anda bersama Berlian Baja Nusantara.",
-  },
+    title: "Diskon untuk Total Pembelian Tertentu!",
+    description: "Nikmati potongan harga spesial bagi toko mitra yang telah mencapai total pembelian sesuai target. Berlaku untuk periode promosi tertentu.",
+  }
 ];
 
 export default function Banner() {
