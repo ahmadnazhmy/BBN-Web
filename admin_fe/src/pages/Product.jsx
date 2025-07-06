@@ -278,7 +278,7 @@ function Product() {
                 filteredProducts.map((product, index) => (
                   <tr key={product.product_id} className="border-b border-gray-200 even:bg-gray-50 hover:bg-gray-100 transition-colors">
                     <td className="px-4 py-3">{index + 1}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900">{product.product_name} {product.type} {product.thick} mm {product.avg_weight_per_stick} Kg</td>
+                    <td className="px-4 py-3 font-semibold text-gray-900">{product.product_name} {product.type} Tebal {product.thick} mm {product.avg_weight_per_stick} Kg</td>
                     <td className="px-4 py-3 font-bold text-gray-900">Rp {product.unit_price.toLocaleString('id-ID')}</td>
                     <td className="px-4 py-3">{product.stock || 0}</td>
                     <td className="px-4 py-3">
