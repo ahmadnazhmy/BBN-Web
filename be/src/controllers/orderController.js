@@ -110,9 +110,9 @@ const checkout = async (req, res) => {
         const initialPaymentStatus = paymentTypeLower === 'downpayment' ? 'pending_dp' : 'pending_fullpayment';
 
         const [paymentResult] = await conn.execute(
-            `INSERT INTO payment (order_id, user_id, amount, payment_type, status, message)
-            VALUES (?, ?, ?, ?, ?, ?)`,
-            [order_id, user_id, amount, paymentTypeLower, initialPaymentStatus, message || '']
+            `INSERT INTO payment (order_id, user_id, amount, payment_type, status, message, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [order_id, user_id, amount, paymentTypeLower, initialPaymentStatus, message || '', getJakartaDateTime()]
         );
 
         const payment_id = paymentResult.insertId;
@@ -139,7 +139,7 @@ const getOrderDetailByPaymentId = async (req, res) => {
     let conn;
     try {
         const tokenUserId = req.user?.id;
-        const paymentId = req.query.payment_id; 
+        const paymentId = req.query.payment_id;
 
         if (!tokenUserId) {
             return res.status(401).json({ message: 'User tidak terautentikasi' });
@@ -151,14 +151,14 @@ const getOrderDetailByPaymentId = async (req, res) => {
 
         conn = await db.getConnection();
 
-        const [payments] = await conn.execute(
+        const paymentResult = await conn.execute(
             `SELECT payment_id, order_id, user_id, payment_type, status, amount, payment_method, proof_of_payment, message, created_at
-            FROM payment
-            WHERE payment_id = ?`,
+             FROM payment
+             WHERE payment_id = ?`,
             [paymentId]
         );
-
-        if (!payments.length) {
+        const payments = paymentResult?.[0] || [];
+        if (payments.length === 0) {
             conn.release();
             return res.status(404).json({ message: 'Payment tidak ditemukan' });
         }
@@ -167,59 +167,63 @@ const getOrderDetailByPaymentId = async (req, res) => {
         const orderId = payment.order_id;
         const paymentUserId = payment.user_id;
 
-        // 2. Ambil detail order
-        const [orders] = await conn.execute(
+        const orderResult = await conn.execute(
             `SELECT o.order_id, o.user_id, o.delivery_method, o.location, o.total_price, o.discounted_total_price,
                     o.status, o.order_date, o.file_delivery_order, o.estimated_date, o.applied_reward_id
-            FROM \`order\` o
-            WHERE o.order_id = ? AND o.user_id = ?`,
-            [orderId, paymentUserId] 
+             FROM \`order\` o
+             WHERE o.order_id = ? AND o.user_id = ?`,
+            [orderId, paymentUserId]
         );
-
-        if (!orders.length) {
+        const orders = orderResult?.[0] || [];
+        if (orders.length === 0) {
             conn.release();
             return res.status(404).json({ message: 'Order tidak ditemukan untuk user ini' });
         }
 
         const order = orders[0];
 
-        const [users] = await conn.execute(
+        const userResult = await conn.execute(
             `SELECT user_id, shop_name, email, phone FROM user WHERE user_id = ?`,
             [paymentUserId]
         );
-        const user = users.length ? users[0] : null;
+        const users = userResult?.[0] || [];
+        const user = users.length > 0 ? users[0] : null;
 
         if (!user) {
-            console.warn(`User with ID ${paymentUserId} not found for payment ${paymentId}. Proceeding with null user data.`);
+            console.warn(`User dengan ID ${paymentUserId} tidak ditemukan untuk payment ${paymentId}.`);
         }
-        
+
         let appliedRewardDetails = null;
         if (order.applied_reward_id) {
-            const [rewardDetails] = await conn.execute(
-                `SELECT reward_id, code, discount_percentage, min_purchase_amount FROM reward WHERE reward_id = ?`,
+            const rewardResult = await conn.execute(
+                `SELECT reward_id, code, discount_percentage, min_purchase_amount
+                 FROM reward WHERE reward_id = ?`,
                 [order.applied_reward_id]
             );
+            const rewardDetails = rewardResult?.[0] || [];
             if (rewardDetails.length > 0) {
                 appliedRewardDetails = rewardDetails[0];
             }
         }
 
-        const [items] = await conn.execute(
+        const itemsResult = await conn.execute(
             `SELECT oi.order_item_id, oi.quantity, oi.subtotal,
                     p.product_name, p.type, p.thick, p.avg_weight_per_stick, p.unit_price
-            FROM order_item oi
-            JOIN product p ON oi.product_id = p.product_id
-            WHERE oi.order_id = ?`,
+             FROM order_item oi
+             JOIN product p ON oi.product_id = p.product_id
+             WHERE oi.order_id = ?`,
             [orderId]
         );
+        const items = itemsResult?.[0] || [];
 
-        const [allPaymentsForOrder] = await conn.execute(
+        const allPaymentsResult = await conn.execute(
             `SELECT payment_id, order_id, user_id, amount, payment_type, status, payment_method, proof_of_payment, message, created_at
-            FROM payment
-            WHERE order_id = ? AND user_id = ?
-            ORDER BY created_at ASC`,
+             FROM payment
+             WHERE order_id = ? AND user_id = ?
+             ORDER BY created_at ASC`,
             [orderId, paymentUserId]
         );
+        const allPaymentsForOrder = allPaymentsResult?.[0] || [];
 
         conn.release();
 
@@ -229,11 +233,7 @@ const getOrderDetailByPaymentId = async (req, res) => {
         };
 
         return res.json({
-            payment: {
-                ...payment,
-                phone: payment.payment_phone,
-                name: payment.payment_name,
-            },
+            payment,
             order: {
                 ...order,
                 amount_for_this_payment: payment.amount,
@@ -246,7 +246,7 @@ const getOrderDetailByPaymentId = async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Gagal mengambil data detail berdasarkan payment_id:', err);
+        console.error('Gagal mengambil data detail berdasarkan payment_id:', err.message);
         if (conn) conn.release();
         return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
     }
