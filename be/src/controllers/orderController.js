@@ -20,7 +20,17 @@ const checkout = async (req, res) => {
   let conn;
   try {
     const { delivery_method, location, cart, payment_type, amount, message, applied_reward_id } = req.body;
-    const user_id = req.user.id;
+    const user_id = req.user?.id;
+
+    console.log('[DEBUG] Checkout payload:', {
+      user_id,
+      delivery_method,
+      location,
+      cart,
+      payment_type,
+      amount,
+      applied_reward_id
+    });
 
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       return res.status(400).json({ error: 'Keranjang kosong' });
@@ -42,44 +52,53 @@ const checkout = async (req, res) => {
     conn = await db.getConnection();
     await conn.beginTransaction();
 
-    if (applied_reward_id) {
-      const [rewards] = await conn.execute(
-        `SELECT * FROM reward WHERE reward_id = ? AND user_id = ? FOR UPDATE`,
-        [applied_reward_id, user_id]
-      );
+    // ✅ Validasi dan ambil reward jika ada
+    if (applied_reward_id != null) {
+      try {
+        const [rewards] = await conn.execute(
+          `SELECT * FROM reward WHERE reward_id = ? AND user_id = ? FOR UPDATE`,
+          [applied_reward_id, user_id]
+        );
 
-      if (!rewards || rewards.length === 0) {
+        if (!Array.isArray(rewards) || rewards.length === 0) {
+          await conn.rollback();
+          return res.status(404).json({ error: 'Reward tidak ditemukan atau bukan milik Anda.' });
+        }
+
+        reward_data = rewards[0];
+
+        if (reward_data.is_used) {
+          await conn.rollback();
+          return res.status(400).json({ error: 'Reward ini sudah digunakan.' });
+        }
+
+        const expiryDate = new Date(reward_data.expiry_date);
+        const currentDate = new Date();
+        if (currentDate > expiryDate) {
+          await conn.rollback();
+          return res.status(400).json({ error: 'Reward ini sudah kadaluarsa.' });
+        }
+
+        if (reward_data.min_purchase_amount && original_total_price < reward_data.min_purchase_amount) {
+          await conn.rollback();
+          return res.status(400).json({
+            error: `Minimum pembelian untuk reward ini adalah Rp${reward_data.min_purchase_amount.toLocaleString('id-ID')}.`
+          });
+        }
+
+        discounted_total_price = original_total_price * (1 - reward_data.discount_percentage / 100);
+        discounted_total_price = Math.max(0, discounted_total_price);
+
+      } catch (queryError) {
+        console.error('[ERROR] Query reward gagal:', queryError);
         await conn.rollback();
-        return res.status(404).json({ error: 'Reward tidak ditemukan atau bukan milik Anda.' });
+        return res.status(500).json({ error: 'Gagal mengambil data reward' });
       }
-
-      reward_data = rewards[0];
-
-      if (reward_data.is_used) {
-        await conn.rollback();
-        return res.status(400).json({ error: 'Reward ini sudah digunakan.' });
-      }
-
-      const expiryDate = new Date(reward_data.expiry_date);
-      const currentDate = new Date();
-      if (currentDate > expiryDate) {
-        await conn.rollback();
-        return res.status(400).json({ error: 'Reward ini sudah kadaluarsa.' });
-      }
-
-      if (reward_data.min_purchase_amount && original_total_price < reward_data.min_purchase_amount) {
-        await conn.rollback();
-        return res.status(400).json({
-          error: `Minimum pembelian untuk reward ini adalah Rp${reward_data.min_purchase_amount.toLocaleString('id-ID')}.`
-        });
-      }
-
-      discounted_total_price = original_total_price * (1 - reward_data.discount_percentage / 100);
-      discounted_total_price = Math.max(0, discounted_total_price);
     } else {
       discounted_total_price = original_total_price;
     }
 
+    // ✅ Validasi jumlah pembayaran
     if (paymentTypeLower === 'downpayment' && amount < discounted_total_price * 0.2) {
       await conn.rollback();
       return res.status(400).json({
@@ -128,6 +147,7 @@ const checkout = async (req, res) => {
 
     const payment_id = paymentResult.insertId;
 
+    // ✅ Tandai reward sebagai sudah digunakan
     if (applied_reward_id && reward_data) {
       await conn.execute(
         `UPDATE reward SET is_used = 1, used_at = ? WHERE reward_id = ?`,
@@ -136,15 +156,16 @@ const checkout = async (req, res) => {
     }
 
     await conn.commit();
+
     res.status(201).json({ message: 'Checkout berhasil. Silakan upload bukti pembayaran.', order_id, payment_id });
 
   } catch (error) {
-    console.error('Checkout error:', error);
+    console.error('[FATAL] Checkout error:', error);
     if (conn) {
       try {
         await conn.rollback();
       } catch (rollbackError) {
-        console.error('Rollback gagal:', rollbackError.message);
+        console.error('[FATAL] Rollback gagal:', rollbackError.message);
       }
     }
     res.status(500).json({ error: 'Gagal melakukan checkout' });
@@ -152,6 +173,8 @@ const checkout = async (req, res) => {
     if (conn) conn.release();
   }
 };
+
+
 
 const getOrderDetailByPaymentId = async (req, res) => {
     let conn;
