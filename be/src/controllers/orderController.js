@@ -25,6 +25,7 @@ const checkout = async (req, res) => {
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       return res.status(400).json({ error: 'Keranjang kosong' });
     }
+
     if (!delivery_method || !location) {
       return res.status(400).json({ error: 'Delivery method dan lokasi wajib diisi' });
     }
@@ -42,17 +43,24 @@ const checkout = async (req, res) => {
     await conn.beginTransaction();
 
     if (applied_reward_id) {
-      const [rewards] = await conn.execute(
-        `SELECT * FROM reward WHERE reward_id = ? AND user_id = ? FOR UPDATE`,
-        [applied_reward_id, user_id]
-      );
+      let rewardsResult;
+      try {
+        [rewardsResult = []] = await conn.execute(
+          `SELECT * FROM reward WHERE reward_id = ? AND user_id = ? FOR UPDATE`,
+          [applied_reward_id, user_id]
+        );
+      } catch (queryError) {
+        await conn.rollback();
+        console.error('Query reward error:', queryError.message);
+        return res.status(500).json({ error: 'Gagal mengambil data reward.' });
+      }
 
-      if (!rewards || rewards.length === 0) {
+      if (rewardsResult.length === 0) {
         await conn.rollback();
         return res.status(404).json({ error: 'Reward tidak ditemukan atau bukan milik Anda.' });
       }
 
-      reward_data = rewards[0];
+      reward_data = rewardsResult[0];
 
       if (reward_data.is_used) {
         await conn.rollback();
@@ -100,11 +108,12 @@ const checkout = async (req, res) => {
 
     const orderDateTime = getJakartaDateTime();
 
-    const [orderResult] = await conn.execute(
+    const [orderResult = {}] = await conn.execute(
       `INSERT INTO \`order\` (user_id, order_date, status, total_price, discounted_total_price, delivery_method, location, applied_reward_id)
        VALUES (?, ?, 'unpaid', ?, ?, ?, ?, ?)`,
       [user_id, orderDateTime, original_total_price, discounted_total_price, delivery_method, location, applied_reward_id || null]
     );
+
     const order_id = orderResult.insertId;
 
     for (const item of cart) {
@@ -118,7 +127,7 @@ const checkout = async (req, res) => {
 
     const initialPaymentStatus = paymentTypeLower === 'downpayment' ? 'pending_dp' : 'pending_fullpayment';
 
-    const [paymentResult] = await conn.execute(
+    const [paymentResult = {}] = await conn.execute(
       `INSERT INTO payment (order_id, user_id, amount, payment_type, status, message, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [order_id, user_id, amount, paymentTypeLower, initialPaymentStatus, message || '', getJakartaDateTime()]
@@ -149,9 +158,6 @@ const checkout = async (req, res) => {
     if (conn) conn.release();
   }
 };
-
-module.exports = checkout;
-
 
 const getOrderDetailByPaymentId = async (req, res) => {
     let conn;
