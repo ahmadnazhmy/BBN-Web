@@ -39,7 +39,7 @@ const checkout = async (req, res) => {
     let reward_data = null;
     let original_total_price = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
 
-    conn = await db.getConnection(); 
+    conn = await db.getConnection();
     await conn.beginTransaction();
 
     if (applied_reward_id) {
@@ -101,10 +101,10 @@ const checkout = async (req, res) => {
       await conn.rollback();
       return res.status(400).json({ error: 'Fullpayment harus sama atau lebih dari total harga' });
     }
-
+    
     if (paymentTypeLower === 'fullpayment' && amount > discounted_total_price) {
-      await conn.rollback();
-      return res.status(400).json({ error: 'Jumlah pembayaran penuh tidak boleh melebihi total harga setelah diskon.' });
+        await conn.rollback();
+        return res.status(400).json({ error: 'Jumlah pembayaran penuh tidak boleh melebihi total harga setelah diskon.' });
     }
 
     const orderDateTime = getJakartaDateTime();
@@ -114,7 +114,6 @@ const checkout = async (req, res) => {
        VALUES (?, ?, 'unpaid', ?, ?, ?, ?, ?)`,
       [user_id, orderDateTime, original_total_price, discounted_total_price, delivery_method, location, applied_reward_id || null]
     );
-
     const order_id = orderResult.insertId;
 
     for (const item of cart) {
@@ -127,13 +126,11 @@ const checkout = async (req, res) => {
     }
 
     const initialPaymentStatus = paymentTypeLower === 'downpayment' ? 'pending_dp' : 'pending_fullpayment';
-
     const [paymentResult = {}] = await conn.execute(
       `INSERT INTO payment (order_id, user_id, amount, payment_type, status, message, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [order_id, user_id, amount, paymentTypeLower, initialPaymentStatus, message || '', getJakartaDateTime()]
     );
-
     const payment_id = paymentResult.insertId;
 
     if (applied_reward_id && reward_data) {
@@ -145,9 +142,9 @@ const checkout = async (req, res) => {
 
     await conn.commit();
     res.status(201).json({ message: 'Checkout berhasil. Silakan upload bukti pembayaran.', order_id, payment_id });
+
   } catch (error) {
     console.error('Checkout error:', error);
-
     if (conn) {
       try {
         await conn.rollback();
@@ -157,7 +154,6 @@ const checkout = async (req, res) => {
     }
     res.status(500).json({ error: 'Gagal melakukan checkout' });
   } finally {
-    
     if (conn) conn.release();
   }
 };
