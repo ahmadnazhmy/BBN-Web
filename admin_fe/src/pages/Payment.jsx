@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { faChevronDown, faFileInvoiceDollar, faFile, faXmark, faSearch } from '@fortawesome/free-solid-svg-icons'; 
+import { faChevronDown, faFileInvoiceDollar, faFile, faXmark, faSearch, faEye, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { getYear, getMonth, format } from 'date-fns';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -89,7 +89,7 @@ function Payment() {
       }
 
       setFormData({
-        customerName: orderDetail.order.shop_name || '',
+        customerName: orderDetail.payment.shop_name || '',
         dueDate: format(new Date(), 'yyyy-MM-dd'),
         totalAmount: remainingAmount,
       });
@@ -109,7 +109,7 @@ function Payment() {
     const fetchOrderDetails = async (paymentId) => {
       try {
         const token = localStorage.getItem('adminToken');
-        const res = await fetch(`${API_BASE_URL}/admin/order/${paymentId}`, {
+        const res = await fetch(`${API_BASE_URL}/admin/order?payment_id=${paymentId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -207,14 +207,14 @@ function Payment() {
       .filter((p) => p.status === 'completed' || p.status === 'dp_paid')
       .reduce((sum, payment) => sum + (payment.total_price || 0), 0);
     setTotalAmount(total);
-  }, [payments, filterMonthYear, searchQuery]); 
+  }, [payments, filterMonthYear, searchQuery]);
 
   useEffect(() => {
     fetchPayments();
     return () => {
       if (notificationTimeout.current) clearTimeout(notificationTimeout.current);
     };
-  }, [filterMonthYear]); 
+  }, [filterMonthYear]);
 
   const fetchPayments = async () => {
     try {
@@ -589,7 +589,6 @@ function Payment() {
                   'Tanggal Dibuat',
                   'Tanggal Verifikasi',
                   'Jatuh Tempo',
-                  'Invoice',
                   'Aksi',
                 ].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-700">
@@ -601,7 +600,7 @@ function Payment() {
             <tbody>
               {filteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan="14" className="text-center py-8 text-gray-500">
+                  <td colSpan="12" className="text-center py-8 text-gray-500">
                     Tidak ada pembayaran ditemukan.
                   </td>
                 </tr>
@@ -682,24 +681,21 @@ function Payment() {
                       <td className="px-4 py-3 text-gray-600">
                         {p.due_date ? format(new Date(p.due_date), 'dd MMM yyyy', { locale: id }) : <i className='text-gray-400'>Tidak ada</i>}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center flex gap-2">
                         <button
                           onClick={() => navigate(`/invoice?payment_id=${p.payment_id}`)}
-                          className="text-white px-2 py-1 rounded-md text-xs bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm"
+                          className="text-white w-8 h-8 text-xs bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center rounded-full"
                           title="Lihat Invoice"
                         >
-                          Lihat Invoice
+                          <FontAwesomeIcon icon={faEye} />
                         </button>
-                      </td>
-                      <td className="px-4 py-3 text-center">
                         {showCreateInvoiceButton && (
                           <button
                             onClick={() => openInvoiceModal(p)}
-                            className="text-white px-3 py-2 rounded-md text-xs bg-purple-600 hover:bg-purple-700 whitespace-nowrap transition-colors shadow-sm"
+                            className="text-white w-8 h-8 text-xs bg-purple-600 hover:bg-purple-700 whitespace-nowrap transition-colors shadow-sm flex items-center justify-center rounded-full"
                             title="Buat Invoice Pelunasan Manual"
                           >
-                            <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" />
-                            Buat Invoice
+                            <FontAwesomeIcon icon={faPlus} />
                           </button>
                         )}
                       </td>

@@ -49,7 +49,14 @@ async function getOrderPaymentDetailsWithItems(req, res) {
   if (!payment_id) return res.status(400).json({ error: 'payment_id harus disertakan' });
 
   try {
-    const [paymentRows] = await pool.query('SELECT *, proof_of_payment AS proof_of_payment FROM payment WHERE payment_id = ?', [payment_id]);
+    const [paymentRows] = await pool.query(
+      `SELECT p.*, u.shop_name
+      FROM payment p
+      JOIN user u ON p.user_id = u.user_id
+      WHERE p.payment_id = ?`,
+      [payment_id]
+    );
+
     if (paymentRows.length === 0) return res.status(404).json({ error: 'Payment tidak ditemukan' });
     const payment = paymentRows[0];
 
@@ -84,6 +91,9 @@ async function getOrderPaymentDetailsWithItems(req, res) {
       payment,
       payments,
       items,
+      user: {
+        shop_name: payment.shop_name
+      }
     });
   } catch (error) {
     console.error(error);

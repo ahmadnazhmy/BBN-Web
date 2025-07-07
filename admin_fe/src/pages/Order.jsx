@@ -85,7 +85,6 @@ export default function Order() {
             });
         }
 
-        // Apply payment status filter
         if (filterPaymentStatus !== 'all') {
             result = result.filter(o => {
                 const status = getPaymentStatus(o);
@@ -95,7 +94,7 @@ export default function Order() {
         }
 
         setFilteredOrders(result);
-    }, [orders, filterMethod, filterMonthYear, filterPaymentStatus]); // Add filterPaymentStatus to dependencies
+    }, [orders, filterMethod, filterMonthYear, filterPaymentStatus]); 
 
     const getPaymentStatus = (order) => {
         const payments = order.payments || [];

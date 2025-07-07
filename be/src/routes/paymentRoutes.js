@@ -4,7 +4,7 @@ const { getOrderPaymentDetailsWithItems, uploadProof, getAllPayments, updatePaym
 const auth = require('../middlewares/authMiddleware');
 const uploadProofMiddleware = require('../middlewares/uploadProofMiddleware'); 
 
-router.get('/payment/order-details', auth.authenticate, getOrderPaymentDetailsWithItems);
+router.get('/admin/order', auth.authenticate, getOrderPaymentDetailsWithItems);
 router.post('/upload-proof', auth.authenticate, uploadProofMiddleware.single('proof'), uploadProof);
 router.get('/admin/payment', auth.authenticateAdmin, getAllPayments);
 router.put('/admin/payment/:id/status', auth.authenticateAdmin, updatePaymentStatus);

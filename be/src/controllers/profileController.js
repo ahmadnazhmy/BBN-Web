@@ -13,12 +13,8 @@ function getJakartaDateTime() {
     timeZone: 'Asia/Jakarta'
   };
   const jakartaTimeString = new Intl.DateTimeFormat('en-CA', options).format(now);
-  return jakartaTimeString.replace(
-    /(\d{4})-(\d{2})-(\d{2}),? (\d{2}):(\d{2}):(\d{2})/,
-    '$1-$2-$3 $4:$5:$6'
-  );
+  return jakartaTimeString.replace(/(\d{4})-(\d{2})-(\d{2}),? (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3 $4:$5:$6');
 }
-
 
 const getProfile = async (req, res) => {
   try {
