@@ -119,7 +119,7 @@ Solusi atap kuat, tahan lama, dan menawan.`,
             <div
               key={product.id}
               onClick={() => handleProductClick(product)}
-              className="flex-shrink-0 w-40 sm:w-48 md:w-auto group bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer overflow-hidden transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg relative" // Added 'relative' here
+              className="flex-shrink-0 w-40 sm:w-48 md:w-auto group bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer overflow-hidden transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg relative" 
             >
               <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden">
                 <img

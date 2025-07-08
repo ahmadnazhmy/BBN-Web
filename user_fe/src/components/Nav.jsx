@@ -236,7 +236,7 @@ export default function Nav() {
                 <Notification
                   isOpen={isNotifOpen}
                   setIsOpen={setIsNotifOpen}
-                  notificationButtonRef={notificationButtonRef} // Pass the same ref
+                  notificationButtonRef={notificationButtonRef}
                   setParentNotificationCount={setNotificationCount}
                 />
               </div>

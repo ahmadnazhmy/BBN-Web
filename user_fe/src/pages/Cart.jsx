@@ -173,7 +173,6 @@ const Cart = () => {
 
       if (response.ok && result.reward) {
         setAppliedDiscount(result.reward);
-        // Removed alert, will show success message below input
       } else {
         setAppliedDiscount(null);
         setDiscountAmount(0);
@@ -226,7 +225,6 @@ const Cart = () => {
       const result = await response.json();
 
       if (response.ok && result.order_id) {
-        // alert(`Checkout berhasil!`); // Removed alert
         localStorage.removeItem(cartKey);
         setCartItems([]);
         setAppliedDiscount(null);
