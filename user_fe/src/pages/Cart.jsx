@@ -363,7 +363,6 @@ const Cart = () => {
                   )}
                 </div>
 
-                {/* Delivery Method */}
                 <div>
                   <label htmlFor="delivery-method" className="block font-semibold text-gray-700 mb-2">
                     Metode Penerimaan
@@ -385,7 +384,6 @@ const Cart = () => {
                   </div>
                 </div>
 
-                {/* Location Selection */}
                 <div className={deliveryMethod === 'pickup' ? 'opacity-50 pointer-events-none' : ''}>
                   <label className="block font-semibold text-gray-700 mb-2">Pilih Lokasi Tujuan</label>
                   <div className="space-y-3">
@@ -429,7 +427,6 @@ const Cart = () => {
                   </div>
                 </div>
 
-                {/* Payment Type */}
                 <div>
                   <label className="block font-semibold text-gray-700 mb-2">Jenis Pembayaran</label>
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -458,7 +455,6 @@ const Cart = () => {
                   </div>
                 </div>
 
-                {/* Final Price Summary */}
                 <div className="mt-4 pt-4 border-t border-gray-200 text-right">
                   <p className="text-lg sm:text-xl font-bold text-gray-800">
                     {paymentType === 'downpayment' ? (
@@ -469,7 +465,6 @@ const Cart = () => {
                   </p>
                 </div>
 
-                {/* Checkout Button */}
                 <button
                   type="submit"
                   className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-2.5 px-4 rounded-md transition duration-200 ease-in-out shadow-md text-base sm:text-lg"

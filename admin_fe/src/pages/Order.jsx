@@ -478,7 +478,7 @@ export default function Order() {
                                                         onChange={handleStatusChangeInRow}
                                                         className={`bg-white border border-gray-300 rounded-md px-2 py-1 pr-8 text-xs appearance-none w-full
                                                             ${isStatusFinal || order.status === 'expired' ? 'bg-gray-200 cursor-not-allowed' : 'focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
-                                                        disabled={isStatusFinal || order.status === 'expired'} // Tambahkan 'expired' di sini
+                                                        disabled={isStatusFinal || order.status === 'expired'}
                                                     >
                                                         {isDelivery ? (
                                                             <>
@@ -488,7 +488,7 @@ export default function Order() {
                                                                 <option value="shipped">{statusLabels.shipped}</option>
                                                                 <option value="delivered">{statusLabels.delivered}</option>
                                                                 <option value="cancel">{statusLabels.cancel}</option>
-                                                                <option value="expired">{statusLabels.expired}</option> {/* Tambahkan ini */}
+                                                                <option value="expired">{statusLabels.expired}</option> 
                                                             </>
                                                         ) : (
                                                             <>
@@ -498,7 +498,7 @@ export default function Order() {
                                                                 <option value="ready">{statusLabels.ready}</option>
                                                                 <option value="picked_up">{statusLabels.picked_up}</option>
                                                                 <option value="cancel">{statusLabels.cancel}</option>
-                                                                <option value="expired">{statusLabels.expired}</option> {/* Tambahkan ini */}
+                                                                <option value="expired">{statusLabels.expired}</option> 
                                                             </>
                                                         )}
                                                     </select>
